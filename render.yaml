@@ -1,13 +1,9 @@
 services:
   - type: web
     name: go-there
-    runtime: static
+    runtime: node
     buildCommand: npm install && npm run build
-    staticPublishPath: ./build
+    startCommand: node server.js
     envVars:
       - key: NODE_VERSION
         value: 18
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
