@@ -1,13 +1,213 @@
-body {
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+html {
+  overflow: hidden;
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: #FAF8F5;
+  color: #1A1A1A;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  overflow-y: auto;
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  /* Prevent text size adjust on orientation change */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  /* Safe area support for notched phones */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Prevent pull-to-refresh on mobile */
+body.no-bounce {
+  overscroll-behavior-y: none;
+}
+
+/* Prevent long-press context menu on cards */
+.no-context-menu {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.75; transform: scale(1.05); }
+}
+
+.streak-flame {
+  animation: flicker 1.5s ease-in-out infinite;
+  display: inline-block;
+}
+
+.toast-enter {
+  animation: toast-slide-up 0.3s ease-out;
+}
+
+@keyframes toast-slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Mobile-friendly scrollbars (hidden on mobile, thin on desktop) */
+@media (pointer: coarse) {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  * {
+    scrollbar-width: none;
+  }
+}
+
+@media (pointer: fine) {
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 2px;
+  }
+}
+
+/* Ensure inputs don't zoom on iOS (font-size >= 16px) */
+input, select, textarea {
+  font-size: 16px !important;
+}
+
+/* Active states for mobile (replaces hover) */
+@media (hover: none) {
+  button:active {
+    opacity: 0.85;
+  }
+}
+
+/* Floating blob animation for backgrounds */
+@keyframes blob-drift {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(15px, -20px) scale(1.05);
+  }
+  50% {
+    transform: translate(-10px, 15px) scale(0.95);
+  }
+  75% {
+    transform: translate(20px, 10px) scale(1.02);
+  }
+}
+
+.blob-float {
+  animation: blob-drift 20s ease-in-out infinite;
+}
+
+/* ======= Physical Card System ======= */
+
+/* 3D perspective wrapper */
+.card-perspective {
+  perspective: 1200px;
+  perspective-origin: 50% 50%;
+}
+
+/* Main question card — crisp white, vibe-colored border, lifted with shadow */
+.question-card {
+  background: #FFFFFF;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid var(--card-accent);
+  box-shadow:
+    0 2px 4px rgba(0,0,0,0.06),
+    0 8px 24px rgba(0,0,0,0.12),
+    0 24px 48px rgba(0,0,0,0.10);
+}
+
+/* Stack card (behind main) */
+.stack-card {
+  background: #FFFFFF;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow:
+    0 2px 8px rgba(0,0,0,0.06),
+    0 8px 20px rgba(0,0,0,0.04);
+}
+
+/* Rare card — gold border + shimmer */
+@keyframes shimmer {
+  0% { transform: translateX(-150%) skewX(-15deg); }
+  100% { transform: translateX(250%) skewX(-15deg); }
+}
+
+.rare-card {
+  position: relative;
+  box-shadow:
+    0 1px 3px rgba(0,0,0,0.08),
+    0 8px 20px rgba(0,0,0,0.10),
+    0 20px 40px rgba(0,0,0,0.06),
+    0 0 0 2px rgba(212, 175, 55, 0.4),
+    0 0 24px rgba(212, 175, 55, 0.12);
+}
+
+.rare-card::before {
+  background: linear-gradient(90deg, #C9A227, #F5D060, #C9A227) !important;
+  height: 6px !important;
+  opacity: 1 !important;
+}
+
+.rare-shimmer {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(212, 175, 55, 0.05) 30%,
+    rgba(245, 208, 96, 0.10) 50%,
+    rgba(212, 175, 55, 0.05) 70%,
+    transparent 100%
+  );
+  animation: shimmer 4s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: 16px;
+}
+
+/* ======= End Card System ======= */
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .blob-float {
+    animation: none;
+  }
+  .rare-shimmer {
+    animation: none;
+  }
 }
