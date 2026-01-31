@@ -23,6 +23,7 @@ const vibeTints = {
   daring: { bg: '#FFF1F2', border: '#FECDD3' },
   flirty: { bg: '#FDF2F8', border: '#FBCFE8' },
   real: { bg: '#ECFDF5', border: '#A7F3D0' },
+  mixed: { bg: '#F5F3FF', border: '#DDD6FE' },
 };
 
 function VibeScreen({ relationship, onSelect, onBack }) {

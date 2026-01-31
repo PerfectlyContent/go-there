@@ -14,6 +14,7 @@ import {
   vibes,
   relationships,
   vibeColors,
+  vibeAvailability,
   dismissFirstUse,
   getTotalQuestionsViewed,
 } from '../utils/storage';
@@ -35,8 +36,35 @@ function isRareCard(relationship, vibe, index) {
   return hash % 15 === 0;
 }
 
+// Seeded shuffle for deterministic mixed order
+function seededShuffle(arr, seed) {
+  const shuffled = [...arr];
+  let s = seed;
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    s = (s * 9301 + 49297) % 233280;
+    const j = Math.floor((s / 233280) * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeCheck }) {
-  const questionList = questions[relationship]?.[vibe] || [];
+  // Build question list — for mixed, combine all available vibes
+  const mixedQuestionList = useMemo(() => {
+    if (vibe !== 'mixed') return null;
+    const available = vibeAvailability[relationship]?.filter(v => v !== 'mixed') || [];
+    const combined = [];
+    available.forEach(v => {
+      const qs = questions[relationship]?.[v] || [];
+      qs.forEach(q => combined.push({ text: q, sourceVibe: v }));
+    });
+    const seed = relationship.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+    return seededShuffle(combined, seed);
+  }, [relationship, vibe]);
+
+  const questionList = vibe === 'mixed'
+    ? (mixedQuestionList || []).map(q => q.text)
+    : (questions[relationship]?.[vibe] || []);
   const totalQuestions = questionList.length;
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -61,9 +89,12 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
   const [milestoneToast, setMilestoneToast] = useState(null);
 
   const currentQuestion = questionList[currentIndex];
-  const vibeConfig = vibes.find((v) => v.id === vibe);
+  const currentSourceVibe = (vibe === 'mixed' && mixedQuestionList?.[currentIndex])
+    ? mixedQuestionList[currentIndex].sourceVibe
+    : vibe;
+  const vibeConfig = vibes.find((v) => v.id === currentSourceVibe);
   const relConfig = relationships.find((r) => r.id === relationship);
-  const colors = vibeColors[vibe];
+  const colors = vibeColors[currentSourceVibe] || vibeColors.deep;
 
   const seenCount = getSeenCount(state, relationship, vibe);
   const progress = (seenCount / totalQuestions) * 100;
@@ -286,6 +317,7 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
     daring: 'linear-gradient(160deg, #FECDD3 0%, #FDA4AF 40%, #FECDD3 70%, #FFF1F2 100%)',
     flirty: 'linear-gradient(160deg, #FBCFE8 0%, #F9A8D4 40%, #FBCFE8 70%, #FDF2F8 100%)',
     real: 'linear-gradient(160deg, #A7F3D0 0%, #6EE7B7 40%, #A7F3D0 70%, #D1FAE5 100%)',
+    mixed: 'linear-gradient(160deg, #EDE9FE 0%, #DDD6FE 40%, #EDE9FE 70%, #F5F3FF 100%)',
   };
 
   const bgBlobs = {
@@ -313,9 +345,13 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
       { color: 'rgba(52, 211, 153, 0.10)', size: 240, x: '65%', y: '25%' },
       { color: 'rgba(110, 231, 183, 0.08)', size: 220, x: '15%', y: '60%' },
     ],
+    mixed: [
+      { color: 'rgba(139, 92, 246, 0.12)', size: 250, x: '70%', y: '20%' },
+      { color: 'rgba(167, 139, 250, 0.08)', size: 210, x: '15%', y: '65%' },
+    ],
   };
 
-  const blobs = bgBlobs[vibe] || [];
+  const blobs = bgBlobs[currentSourceVibe] || bgBlobs[vibe] || [];
 
   // Card exit animation variants
   const cardVariants = {
@@ -351,7 +387,7 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="flex flex-col items-center justify-center px-6 relative"
-        style={{ background: bgStyle[vibe], minHeight: '100dvh', overflow: 'hidden' }}
+        style={{ background: bgStyle[currentSourceVibe] || bgStyle[vibe], minHeight: '100dvh', overflow: 'hidden' }}
       >
         {blobs.map((blob, i) => (
           <div
@@ -423,7 +459,7 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="flex flex-col items-center justify-center px-6 relative"
-        style={{ background: bgStyle[vibe], minHeight: '100dvh', overflow: 'hidden' }}
+        style={{ background: bgStyle[currentSourceVibe] || bgStyle[vibe], minHeight: '100dvh', overflow: 'hidden' }}
       >
         {blobs.map((blob, i) => (
           <div
@@ -472,7 +508,7 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
   return (
     <div
       className="flex flex-col relative"
-      style={{ background: bgStyle[vibe], minHeight: '100dvh', overflow: 'hidden' }}
+      style={{ background: bgStyle[currentSourceVibe] || bgStyle[vibe], minHeight: '100dvh', overflow: 'hidden' }}
     >
       {/* Background blobs */}
       {blobs.map((blob, i) => (

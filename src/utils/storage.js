@@ -205,16 +205,17 @@ export const vibes = [
   { id: 'daring', label: 'Daring', emoji: '\ud83d\udd25', color: '#EF4444' },
   { id: 'flirty', label: 'Flirty', emoji: '\ud83d\udc8b', color: '#EC4899' },
   { id: 'real', label: 'Real', emoji: '\ud83d\udcac', color: '#10B981' },
+  { id: 'mixed', label: 'Mixed', emoji: '\ud83c\udfb2', color: '#8B5CF6' },
 ];
 
 export const vibeAvailability = {
-  partner: ['deep', 'funny', 'nostalgic', 'daring', 'flirty', 'real'],
-  friend: ['deep', 'funny', 'nostalgic', 'daring', 'real'],
-  group: ['deep', 'funny', 'nostalgic', 'daring'],
-  parent: ['deep', 'funny', 'nostalgic', 'daring', 'real'],
-  sibling: ['deep', 'funny', 'nostalgic', 'daring', 'real'],
-  kid: ['deep', 'funny', 'nostalgic', 'real'],
-  date: ['deep', 'funny', 'daring', 'flirty', 'real'],
+  partner: ['deep', 'funny', 'nostalgic', 'daring', 'flirty', 'real', 'mixed'],
+  friend: ['deep', 'funny', 'nostalgic', 'daring', 'real', 'mixed'],
+  group: ['deep', 'funny', 'nostalgic', 'daring', 'mixed'],
+  parent: ['deep', 'funny', 'nostalgic', 'daring', 'real', 'mixed'],
+  sibling: ['deep', 'funny', 'nostalgic', 'daring', 'real', 'mixed'],
+  kid: ['deep', 'funny', 'nostalgic', 'real', 'mixed'],
+  date: ['deep', 'funny', 'daring', 'flirty', 'real', 'mixed'],
 };
 
 export const vibeColors = {
@@ -224,4 +225,5 @@ export const vibeColors = {
   daring: { bg: 'from-red-100/30 to-coral-100/30', card: '#EF4444', text: '#EF4444' },
   flirty: { bg: 'from-pink-100/30 to-rose-100/30', card: '#EC4899', text: '#EC4899' },
   real: { bg: 'from-emerald-100/30 to-teal-100/30', card: '#10B981', text: '#10B981' },
+  mixed: { bg: 'from-violet-100/30 to-purple-100/30', card: '#8B5CF6', text: '#8B5CF6' },
 };
