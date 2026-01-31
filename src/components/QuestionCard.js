@@ -658,6 +658,14 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
               </div>
             )}
 
+            {/* Vibe icon */}
+            <div
+              className="absolute top-4 left-4 pointer-events-none"
+              style={{ fontSize: '16px', opacity: 0.45, zIndex: 2 }}
+            >
+              {vibeConfig?.emoji}
+            </div>
+
             <p
               className="text-center font-semibold leading-relaxed relative"
               style={{
