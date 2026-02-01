@@ -8,7 +8,7 @@ import {
   saveQuestion,
   isQuestionSaved,
   getSeenCount,
-  getNextUnseenIndex,
+  // getNextUnseenIndex — replaced by shuffled order logic
   incrementStreakIfQualified,
   saveState,
   vibes,
@@ -66,10 +66,27 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
     ? (mixedQuestionList || []).map(q => q.text)
     : (questions[relationship]?.[vibe] || []);
   const totalQuestions = questionList.length;
+
+  // Shuffle order per session — create a randomized index sequence so users
+  // don't see questions in the same order every time they enter a vibe.
+  // Uses Date.now() seed so each session gets a different order.
+  // The shuffled array maps display position → original question index.
+  const shuffledOrder = useMemo(() => {
+    const indices = Array.from({ length: totalQuestions }, (_, i) => i);
+    const seed = Date.now() + relationship.length * 1000 + (vibe || '').length;
+    return seededShuffle(indices, seed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [relationship, vibe, totalQuestions]);
+
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  const [currentIndex, setCurrentIndex] = useState(() => getNextUnseenIndex(state, relationship, vibe, totalQuestions));
+  // Find the first unseen question in shuffled order
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    const seen = state.seen[relationship]?.[vibe] || [];
+    const firstUnseen = shuffledOrder.find(idx => !seen.includes(idx));
+    return firstUnseen !== undefined ? firstUnseen : shuffledOrder[0];
+  });
   const [showHint, setShowHint] = useState(state.firstUse);
   const [saved, setSaved] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -180,11 +197,12 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
       return;
     }
 
-    // Find next unseen question
+    // Find next unseen question in shuffled order
     const seen = newState.seen[relationship]?.[vibe] || [];
-    let nextIdx = (currentIndex + 1) % totalQuestions;
-    for (let i = 0; i < totalQuestions; i++) {
-      const candidate = (currentIndex + 1 + i) % totalQuestions;
+    const currentShuffledPos = shuffledOrder.indexOf(currentIndex);
+    let nextIdx = shuffledOrder[(currentShuffledPos + 1) % totalQuestions];
+    for (let i = 1; i <= totalQuestions; i++) {
+      const candidate = shuffledOrder[(currentShuffledPos + i) % totalQuestions];
       if (!seen.includes(candidate)) {
         nextIdx = candidate;
         break;
@@ -209,7 +227,7 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
       setTextFlash(true);
       setTimeout(() => setTextFlash(false), 400);
     }, 200);
-  }, [relationship, vibe, currentIndex, totalQuestions, setState, onBadgeCheck, x, y, swipeCount, checkMilestone]);
+  }, [relationship, vibe, currentIndex, totalQuestions, setState, onBadgeCheck, x, y, swipeCount, checkMilestone, shuffledOrder]);
 
   const handleSave = useCallback(() => {
     if (!saved) {
