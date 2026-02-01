@@ -1,13 +1,13 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { motion, useMotionValue, useTransform, AnimatePresence, animate } from 'framer-motion';
 import questions from '../data/questions';
+import bonusQuestions from '../data/bonusQuestions';
 import ProgressRing from './ProgressRing';
 import Confetti from './Confetti';
 import {
   markQuestionSeen,
   saveQuestion,
   isQuestionSaved,
-  getSeenCount,
   // getNextUnseenIndex — replaced by shuffled order logic
   incrementStreakIfQualified,
   saveState,
@@ -62,21 +62,45 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
     return seededShuffle(combined, seed);
   }, [relationship, vibe]);
 
-  const questionList = vibe === 'mixed'
+  // Base question list (originals only)
+  const baseQuestionList = useMemo(() => vibe === 'mixed'
     ? (mixedQuestionList || []).map(q => q.text)
-    : (questions[relationship]?.[vibe] || []);
-  const totalQuestions = questionList.length;
+    : (questions[relationship]?.[vibe] || []),
+    [vibe, mixedQuestionList, relationship]
+  );
+  const baseTotal = baseQuestionList.length;
 
-  // Shuffle order per session — create a randomized index sequence so users
-  // don't see questions in the same order every time they enter a vibe.
-  // Uses Date.now() seed so each session gets a different order.
-  // The shuffled array maps display position → original question index.
-  const shuffledOrder = useMemo(() => {
-    const indices = Array.from({ length: totalQuestions }, (_, i) => i);
+  // "More like this" bonus question injection — pool-based
+  const [bonusQueue, setBonusQueue] = useState([]); // [{text, isBonus: true}]
+  const [usedPoolIndices, setUsedPoolIndices] = useState({}); // { [vibe]: Set<number> } — tracks consumed pool indices
+
+  // Combined session list = originals + injected bonus questions
+  const sessionQuestionList = useMemo(
+    () => [...baseQuestionList, ...bonusQueue.map(b => b.text)],
+    [baseQuestionList, bonusQueue]
+  );
+  const totalQuestions = sessionQuestionList.length;
+
+  // Shuffle order per session — randomized index sequence.
+  // useState (not useMemo) so we can splice in bonus indices dynamically.
+  const [shuffledOrder, setShuffledOrder] = useState(() => {
+    const indices = Array.from({ length: baseTotal }, (_, i) => i);
     const seed = Date.now() + relationship.length * 1000 + (vibe || '').length;
     return seededShuffle(indices, seed);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [relationship, vibe, totalQuestions]);
+  });
+
+  // Ref always holds latest shuffledOrder — critical for avoiding stale closures
+  // when handleSave injects bonus indices and goNext runs right after
+  const shuffledOrderRef = useRef(shuffledOrder);
+  shuffledOrderRef.current = shuffledOrder;
+
+  // Same for bonusQueue — handleSave needs the latest length for index calculation
+  const bonusQueueRef = useRef(bonusQueue);
+  bonusQueueRef.current = bonusQueue;
+
+  // Same for usedPoolIndices — avoid stale closure when picking from pool
+  const usedPoolIndicesRef = useRef(usedPoolIndices);
+  usedPoolIndicesRef.current = usedPoolIndices;
 
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -107,7 +131,8 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
   const [heartPulse, setHeartPulse] = useState(false);
   const [milestoneToast, setMilestoneToast] = useState(null);
 
-  const currentQuestion = questionList[currentIndex];
+  const currentQuestion = sessionQuestionList[currentIndex];
+  const isBonusCard = currentIndex >= baseTotal;
   const currentSourceVibe = (vibe === 'mixed' && mixedQuestionList?.[currentIndex])
     ? mixedQuestionList[currentIndex].sourceVibe
     : vibe;
@@ -115,8 +140,12 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
   const relConfig = relationships.find((r) => r.id === relationship);
   const colors = vibeColors[currentSourceVibe] || vibeColors.deep;
 
-  const seenCount = getSeenCount(state, relationship, vibe);
-  const progress = (seenCount / totalQuestions) * 100;
+  // Progress based on base questions only (not inflated by bonus)
+  const baseSeenCount = useMemo(() => {
+    const seen = state.seen[relationship]?.[vibe] || [];
+    return seen.filter(idx => idx < baseTotal).length;
+  }, [state, relationship, vibe, baseTotal]);
+  const progress = (baseSeenCount / baseTotal) * 100;
   const rare = useMemo(() => isRareCard(relationship, vibe, currentIndex), [relationship, vibe, currentIndex]);
 
   // Per-card visual variation — alternating tint + accent stripe
@@ -172,9 +201,9 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
   }, []);
 
   const goNext = useCallback((direction = 'right') => {
-    // Mark current question as seen
+    // Mark current question as seen — pass baseTotal for correct completion check
     const currentState = stateRef.current;
-    let newState = markQuestionSeen(currentState, relationship, vibe, currentIndex);
+    let newState = markQuestionSeen(currentState, relationship, vibe, currentIndex, baseTotal);
     newState = incrementStreakIfQualified(newState);
     saveState(newState);
     setState(newState);
@@ -188,21 +217,30 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
     // Session stats
     setSessionStats(prev => ({ ...prev, viewed: prev.viewed + 1 }));
 
-    // Check completion using fresh state
-    const newSeenCount = (newState.seen[relationship]?.[vibe]?.length) || 0;
-    checkMilestone(newSeenCount);
+    // Use ref to always get the latest shuffledOrder (may have been updated by handleSave)
+    const currentOrder = shuffledOrderRef.current;
 
-    if (newSeenCount >= totalQuestions) {
-      setShowCompletion(true);
-      return;
+    // Check completion — only base questions count
+    const allSeen = newState.seen[relationship]?.[vibe] || [];
+    const newBaseSeenCount = allSeen.filter(idx => idx < baseTotal).length;
+    checkMilestone(newBaseSeenCount);
+
+    if (newBaseSeenCount >= baseTotal) {
+      // Check if there are still bonus questions to show
+      const unseenBonus = currentOrder.filter(idx => idx >= baseTotal && !allSeen.includes(idx));
+      if (unseenBonus.length === 0) {
+        setShowCompletion(true);
+        return;
+      }
     }
 
     // Find next unseen question in shuffled order
     const seen = newState.seen[relationship]?.[vibe] || [];
-    const currentShuffledPos = shuffledOrder.indexOf(currentIndex);
-    let nextIdx = shuffledOrder[(currentShuffledPos + 1) % totalQuestions];
-    for (let i = 1; i <= totalQuestions; i++) {
-      const candidate = shuffledOrder[(currentShuffledPos + i) % totalQuestions];
+    const currentShuffledPos = currentOrder.indexOf(currentIndex);
+    const orderLen = currentOrder.length;
+    let nextIdx = currentOrder[(currentShuffledPos + 1) % orderLen];
+    for (let i = 1; i <= orderLen; i++) {
+      const candidate = currentOrder[(currentShuffledPos + i) % orderLen];
       if (!seen.includes(candidate)) {
         nextIdx = candidate;
         break;
@@ -227,20 +265,19 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
       setTextFlash(true);
       setTimeout(() => setTextFlash(false), 400);
     }, 200);
-  }, [relationship, vibe, currentIndex, totalQuestions, setState, onBadgeCheck, x, y, swipeCount, checkMilestone, shuffledOrder]);
+  }, [relationship, vibe, currentIndex, baseTotal, setState, onBadgeCheck, x, y, swipeCount, checkMilestone]);
 
   const handleSave = useCallback(() => {
     if (!saved) {
-      const newState = saveQuestion(stateRef.current, currentQuestion, relationship, vibe);
+      // 1. Save the question (with isBonus flag)
+      const newState = saveQuestion(stateRef.current, currentQuestion, relationship, vibe, isBonusCard);
       setState(newState);
       setSaved(true);
       setSessionStats(prev => ({ ...prev, saved: prev.saved + 1 }));
 
-      // Heart animation: pulse + particles
+      // 2. Heart animation: pulse + particles
       setHeartPulse(true);
       setTimeout(() => setHeartPulse(false), 600);
-
-      // Particle burst
       const particles = Array.from({ length: 6 }, (_, i) => ({
         id: Date.now() + i,
         angle: (i * 60) + Math.random() * 30,
@@ -248,14 +285,64 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
       setHeartParticles(particles);
       setTimeout(() => setHeartParticles([]), 800);
 
-      // Haptic feedback
+      // 3. Haptic feedback
       if (navigator.vibrate) {
         navigator.vibrate(50);
       }
 
-      toast('Saved');
+      // 4. "More like this" — pick 1 random question from the vibe pool
+      const effectiveVibe = (vibe === 'mixed' && mixedQuestionList?.[currentIndex])
+        ? mixedQuestionList[currentIndex].sourceVibe
+        : vibe;
+
+      const pool = bonusQuestions[relationship]?.[effectiveVibe];
+      const currentUsed = usedPoolIndicesRef.current;
+      const usedSet = currentUsed[effectiveVibe] || new Set();
+
+      if (pool && pool.length > 0 && usedSet.size < pool.length) {
+        // Find available (unseen) pool indices
+        const available = [];
+        for (let i = 0; i < pool.length; i++) {
+          if (!usedSet.has(i)) available.push(i);
+        }
+
+        if (available.length > 0) {
+          // Pick 1 random pool question
+          const pick = available[Math.floor(Math.random() * available.length)];
+          const bonusText = pool[pick];
+
+          // Mark this pool index as used (update state + ref)
+          const newUsed = { ...currentUsed, [effectiveVibe]: new Set([...usedSet, pick]) };
+          setUsedPoolIndices(newUsed);
+          usedPoolIndicesRef.current = newUsed;
+
+          // Use refs for latest values to avoid stale closure issues
+          const currentBonusQueue = bonusQueueRef.current;
+          const currentOrder = shuffledOrderRef.current;
+
+          // Add to bonus queue
+          const newBonusItem = { text: bonusText, isBonus: true };
+          const newBonusQueue = [...currentBonusQueue, newBonusItem];
+          setBonusQueue(newBonusQueue);
+          bonusQueueRef.current = newBonusQueue;
+
+          // Splice new index into shuffledOrder right after current position
+          const currentShuffledPos = currentOrder.indexOf(currentIndex);
+          const newIdx = baseTotal + currentBonusQueue.length; // position in sessionQuestionList
+          const newOrder = [...currentOrder];
+          newOrder.splice(currentShuffledPos + 1, 0, newIdx);
+          setShuffledOrder(newOrder);
+          shuffledOrderRef.current = newOrder;
+
+          toast('More like this ✨');
+        } else {
+          toast('Saved ❤️');
+        }
+      } else {
+        toast('Saved ❤️');
+      }
     }
-  }, [saved, currentQuestion, relationship, vibe, setState, toast]);
+  }, [saved, currentQuestion, relationship, vibe, isBonusCard, setState, toast, currentIndex, mixedQuestionList, baseTotal]);
 
   const handleShare = useCallback(async () => {
     if (navigator.share) {
@@ -600,7 +687,7 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
         <div className="flex items-center gap-1.5">
           <ProgressRing progress={progress} size={36} strokeWidth={3} color={colors.card} />
           <span className="text-xs font-medium text-gray-500">
-            {seenCount}/{totalQuestions}
+            {baseSeenCount}/{baseTotal}
           </span>
         </div>
       </div>
@@ -628,7 +715,7 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
             exit={{ opacity: 0, y: -10 }}
             className="text-center px-6 py-2 text-sm text-gray-600 font-medium"
           >
-            Swipe right for next, left to save
+            Swipe right for next, left for more like this
           </motion.div>
         )}
         {!showHint && microCopy && (
@@ -694,9 +781,9 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
           style={{ opacity: leftHintOpacity }}
           className="absolute left-6 top-1/2 -translate-y-1/2 z-20 pointer-events-none"
         >
-          <div className="bg-white/80 backdrop-blur-sm text-pink-600 rounded-full px-3 py-1.5 text-sm font-medium"
-            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-            ❤️ Save
+          <div className="bg-white/80 backdrop-blur-sm rounded-full px-3 py-1.5 text-sm font-medium"
+            style={{ color: '#8B5CF6', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+            ✨ More like this
           </div>
         </motion.div>
         <motion.div
@@ -731,7 +818,7 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
             animate="center"
             exit={exitDirection === 'left' ? 'exitLeft' : 'exitRight'}
             transition={{ type: 'spring', damping: 25, stiffness: 300, duration: 0.3 }}
-            className={`question-card w-full max-w-[412px] relative z-10 cursor-grab active:cursor-grabbing select-none no-context-menu ${rare ? 'rare-card' : ''}`}
+            className={`question-card w-full max-w-[412px] relative z-10 cursor-grab active:cursor-grabbing select-none no-context-menu ${rare ? 'rare-card' : ''} ${isBonusCard ? 'bonus-card' : ''}`}
             style={{
               '--card-accent': colors.card,
               background: cardBgColor,
@@ -770,12 +857,12 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
               </div>
             )}
 
-            {/* Vibe icon */}
+            {/* Vibe icon — sparkle for bonus cards */}
             <div
               className="absolute top-4 left-4 pointer-events-none"
               style={{ fontSize: '26px', zIndex: 2 }}
             >
-              {vibeConfig?.emoji}
+              {isBonusCard ? '✨' : vibeConfig?.emoji}
             </div>
 
             <motion.p
@@ -812,9 +899,9 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
             {/* Question number */}
             <div
               className="absolute bottom-3 left-0 right-0 text-center pointer-events-none"
-              style={{ zIndex: 2, fontSize: '11px', fontWeight: 600, color: colors.card, opacity: 0.5 }}
+              style={{ zIndex: 2, fontSize: '11px', fontWeight: 600, color: isBonusCard ? '#8B5CF6' : colors.card, opacity: 0.5 }}
             >
-              {seenCount + 1} / {totalQuestions}
+              {isBonusCard ? '✨ bonus' : `${baseSeenCount + 1} / ${baseTotal}`}
             </div>
 
             {/* Heart particle burst */}
@@ -849,7 +936,7 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
           className="text-xs font-medium cursor-pointer active:opacity-60 select-none"
           style={{ color: saved ? '#EC4899' : `${colors.card}99`, minHeight: 44, display: 'flex', alignItems: 'center' }}
         >
-          ← {saved ? '❤️ Saved' : 'Save'}
+          ← {saved ? '❤️ Saved' : 'More like this ✨'}
         </span>
         <span
           role="button"

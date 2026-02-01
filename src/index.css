@@ -200,6 +200,15 @@ input, select, textarea {
   border-radius: 16px;
 }
 
+/* Bonus card — purple sparkle glow */
+.bonus-card {
+  box-shadow:
+    0 1px 3px rgba(0,0,0,0.08),
+    0 8px 20px rgba(0,0,0,0.10),
+    0 0 0 2px rgba(139, 92, 246, 0.3),
+    0 0 16px rgba(139, 92, 246, 0.08);
+}
+
 /* ======= End Card System ======= */
 
 /* Reduce motion for users who prefer it */

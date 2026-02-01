@@ -38,7 +38,7 @@ function SavedQuestionCard({ sq, onRemove, onShare, getVibeColor, getVibeLabel, 
         style={{ x, opacity, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', touchAction: 'pan-y' }}
       >
         <p className="text-sm font-medium text-gray-800 mb-2.5 leading-relaxed">
-          {sq.question}
+          {sq.isBonus && <span className="mr-1">✨</span>}{sq.question}
         </p>
         <div className="flex gap-2.5 flex-wrap">
           <span

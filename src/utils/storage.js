@@ -30,7 +30,7 @@ export function saveState(state) {
   }
 }
 
-export function markQuestionSeen(state, relationship, vibe, questionIndex) {
+export function markQuestionSeen(state, relationship, vibe, questionIndex, baseTotal = 20) {
   const newState = { ...state };
   if (!newState.seen[relationship]) newState.seen[relationship] = {};
   if (!newState.seen[relationship][vibe]) newState.seen[relationship][vibe] = [];
@@ -39,8 +39,9 @@ export function markQuestionSeen(state, relationship, vibe, questionIndex) {
     newState.seen[relationship][vibe] = [...newState.seen[relationship][vibe], questionIndex];
   }
 
-  // Check if combo is completed (all 20 seen)
-  if (newState.seen[relationship][vibe].length >= 20) {
+  // Check if combo is completed — only count base question indices
+  const baseSeenCount = newState.seen[relationship][vibe].filter(idx => idx < baseTotal).length;
+  if (baseSeenCount >= baseTotal) {
     if (!newState.completed[relationship]) newState.completed[relationship] = {};
     newState.completed[relationship][vibe] = true;
   }
@@ -120,7 +121,7 @@ export function incrementStreakIfQualified(state) {
   return newState;
 }
 
-export function saveQuestion(state, question, relationship, vibe) {
+export function saveQuestion(state, question, relationship, vibe, isBonus = false) {
   const newState = { ...state };
   const exists = newState.savedQuestions.some(
     (sq) => sq.question === question && sq.relationship === relationship && sq.vibe === vibe
@@ -128,7 +129,7 @@ export function saveQuestion(state, question, relationship, vibe) {
   if (!exists) {
     newState.savedQuestions = [
       ...newState.savedQuestions,
-      { question, relationship, vibe, savedAt: Date.now() },
+      { question, relationship, vibe, savedAt: Date.now(), isBonus },
     ];
   }
   saveState(newState);
