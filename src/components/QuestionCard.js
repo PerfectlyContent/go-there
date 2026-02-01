@@ -76,7 +76,9 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
   const [toastMessage, setToastMessage] = useState('');
   const [showCompletion, setShowCompletion] = useState(false);
   const [exitDirection, setExitDirection] = useState(null); // 'left' | 'right' | null
+  const [enterDirection, setEnterDirection] = useState(null); // 'left' | 'right' — where the new card enters from
   const [cardKey, setCardKey] = useState(0); // Forces AnimatePresence re-render
+  const [textFlash, setTextFlash] = useState(false); // Flash question text on new card
   const [swipeCount, setSwipeCount] = useState(() => {
     try {
       return parseInt(localStorage.getItem('go-there-swipe-count') || '0', 10);
@@ -99,6 +101,14 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
   const seenCount = getSeenCount(state, relationship, vibe);
   const progress = (seenCount / totalQuestions) * 100;
   const rare = useMemo(() => isRareCard(relationship, vibe, currentIndex), [relationship, vibe, currentIndex]);
+
+  // Per-card visual variation — alternating tint + accent stripe
+  const cardHueRotate = useMemo(() => ((currentIndex * 23) % 40) - 20, [currentIndex]); // -20 to +20 degrees
+  const isEvenCard = currentIndex % 2 === 0;
+  // Alternate between white and a very light vibe tint
+  const cardBgColor = isEvenCard ? '#FFFFFF' : `${colors.card}08`;
+  // Accent stripe height varies per card
+  const accentHeight = [4, 6, 5, 3, 7][(currentIndex) % 5];
 
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -181,15 +191,24 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
       }
     }
 
-    // Animate card flying off
+    // Haptic feedback on swipe
+    if (navigator.vibrate) {
+      navigator.vibrate(50);
+    }
+
+    // Animate card flying off — new card enters from opposite side
     setExitDirection(direction);
+    setEnterDirection(direction === 'right' ? 'left' : 'right');
     setTimeout(() => {
       x.set(0);
       y.set(0);
       setCurrentIndex(nextIdx);
       setCardKey(k => k + 1);
       setExitDirection(null);
-    }, 250);
+      // Flash the question text to draw attention
+      setTextFlash(true);
+      setTimeout(() => setTextFlash(false), 400);
+    }, 200);
   }, [relationship, vibe, currentIndex, totalQuestions, setState, onBadgeCheck, x, y, swipeCount, checkMilestone]);
 
   const handleSave = useCallback(() => {
@@ -353,30 +372,44 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
 
   const blobs = bgBlobs[currentSourceVibe] || bgBlobs[vibe] || [];
 
-  // Card exit animation variants
+  // Card enter/exit animation variants — enter from opposite side of swipe
   const cardVariants = {
-    enter: {
-      scale: 0.9,
+    enterFromLeft: {
+      x: -window.innerWidth * 0.5,
+      scale: 0.85,
       opacity: 0,
-      y: 30,
+      rotate: -10,
+    },
+    enterFromRight: {
+      x: window.innerWidth * 0.5,
+      scale: 0.85,
+      opacity: 0,
+      rotate: 10,
     },
     center: {
-      scale: 1,
+      scale: [0.85, 1.03, 1],
       opacity: 1,
       x: 0,
       y: 0,
+      rotate: 0,
+      transition: {
+        scale: { times: [0, 0.6, 1], duration: 0.4, ease: 'easeOut' },
+        default: { type: 'spring', damping: 25, stiffness: 300 },
+      },
     },
     exitRight: {
       x: window.innerWidth + 100,
       opacity: 0,
-      rotate: 20,
-      transition: { duration: 0.25, ease: 'easeIn' },
+      scale: 0.8,
+      rotate: 25,
+      transition: { duration: 0.2, ease: 'easeIn' },
     },
     exitLeft: {
       x: -window.innerWidth - 100,
       opacity: 0,
-      rotate: -20,
-      transition: { duration: 0.25, ease: 'easeIn' },
+      scale: 0.8,
+      rotate: -25,
+      transition: { duration: 0.2, ease: 'easeIn' },
     },
   };
 
@@ -554,6 +587,19 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
         </div>
       </div>
 
+      {/* Progress bar */}
+      <div className="w-full px-4 z-10">
+        <div className="w-full h-[3px] rounded-full overflow-hidden" style={{ backgroundColor: `${colors.card}20` }}>
+          <motion.div
+            className="h-full rounded-full"
+            style={{ backgroundColor: colors.card }}
+            initial={false}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+          />
+        </div>
+      </div>
+
       {/* First-time hint OR micro-copy */}
       <AnimatePresence mode="wait">
         {showHint && swipeCount < 3 && (
@@ -663,13 +709,14 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
             dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
             onDragEnd={handleDragEnd}
             variants={cardVariants}
-            initial="enter"
+            initial={enterDirection === 'right' ? 'enterFromRight' : 'enterFromLeft'}
             animate="center"
             exit={exitDirection === 'left' ? 'exitLeft' : 'exitRight'}
             transition={{ type: 'spring', damping: 25, stiffness: 300, duration: 0.3 }}
             className={`question-card w-full max-w-[412px] relative z-10 cursor-grab active:cursor-grabbing select-none no-context-menu ${rare ? 'rare-card' : ''}`}
             style={{
               '--card-accent': colors.card,
+              background: cardBgColor,
               x,
               y,
               rotate,
@@ -684,6 +731,17 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
               userSelect: 'none',
             }}
           >
+            {/* Colored accent stripe at top — varies per card */}
+            <div
+              className="absolute top-0 left-0 right-0 rounded-t-[14px]"
+              style={{
+                height: accentHeight,
+                background: `linear-gradient(90deg, ${colors.card}, ${colors.card}BB)`,
+                filter: `hue-rotate(${cardHueRotate}deg)`,
+                zIndex: 3,
+              }}
+            />
+
             {/* Rare card shimmer overlay */}
             {rare && (
               <div
@@ -702,8 +760,10 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
               {vibeConfig?.emoji}
             </div>
 
-            <p
+            <motion.p
               className="text-center font-semibold leading-relaxed relative"
+              animate={textFlash ? { opacity: [0, 1], y: [12, 0] } : { opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
               style={{
                 fontSize: currentQuestion?.length > 100 ? '18px' : currentQuestion?.length > 70 ? '20px' : '22px',
                 color: '#1A1A1A',
@@ -713,7 +773,7 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
               }}
             >
               {currentQuestion}
-            </p>
+            </motion.p>
 
             {/* Save heart indicator with animation */}
             <AnimatePresence>
@@ -730,6 +790,14 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Question number */}
+            <div
+              className="absolute bottom-3 left-0 right-0 text-center pointer-events-none"
+              style={{ zIndex: 2, fontSize: '11px', fontWeight: 600, color: colors.card, opacity: 0.5 }}
+            >
+              {seenCount + 1} / {totalQuestions}
+            </div>
 
             {/* Heart particle burst */}
             {heartParticles.map((particle) => (
@@ -753,42 +821,38 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
         </AnimatePresence>
       </div>
 
-      {/* Fallback buttons */}
-      <div className="flex items-center justify-center gap-3 pb-6 pt-2 px-4 z-10">
-        <motion.button
-          whileTap={{ scale: 0.9 }}
+      {/* Swipe hint labels — tappable for accessibility but styled as text hints */}
+      <div className="flex items-center justify-between pb-5 pt-2 px-6 z-10">
+        <span
+          role="button"
+          tabIndex={0}
           onClick={handleSave}
-          className={`flex items-center gap-2 px-5 py-3.5 bg-white rounded-full text-sm font-medium cursor-pointer active:bg-gray-50 ${saved ? 'text-pink-500' : 'text-gray-700'}`}
-          style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.06)', minHeight: 48 }}
+          onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+          className="text-xs font-medium cursor-pointer active:opacity-60 select-none"
+          style={{ color: saved ? '#EC4899' : `${colors.card}99`, minHeight: 44, display: 'flex', alignItems: 'center' }}
         >
-          <motion.span
-            animate={heartPulse ? { scale: [1, 1.5, 1] } : {}}
-            transition={{ duration: 0.3 }}
-          >
-            {saved ? '❤️' : '🤍'}
-          </motion.span>
-          Save
-        </motion.button>
-        <motion.button
-          whileTap={{ scale: 0.9 }}
+          ← {saved ? '❤️ Saved' : 'Save'}
+        </span>
+        <span
+          role="button"
+          tabIndex={0}
           onClick={handleShare}
-          className="flex items-center gap-2 px-5 py-3.5 bg-white rounded-full text-sm font-medium text-gray-700 cursor-pointer active:bg-gray-50"
-          style={{ boxShadow: '0 2px 10px rgba(0,0,0,0.06)', minHeight: 48 }}
+          onKeyDown={(e) => e.key === 'Enter' && handleShare()}
+          className="text-xs font-medium cursor-pointer active:opacity-60 select-none"
+          style={{ color: `${colors.card}99`, minHeight: 44, display: 'flex', alignItems: 'center' }}
         >
-          📤 Share
-        </motion.button>
-        <motion.button
-          whileTap={{ scale: 0.9 }}
+          Share ↑
+        </span>
+        <span
+          role="button"
+          tabIndex={0}
           onClick={() => { dismissHint(); goNext('right'); }}
-          className="flex items-center gap-2 px-6 py-3.5 rounded-full text-sm font-semibold text-white cursor-pointer"
-          style={{
-            backgroundColor: colors.card,
-            boxShadow: `0 4px 15px ${colors.card}40`,
-            minHeight: 48,
-          }}
+          onKeyDown={(e) => e.key === 'Enter' && (dismissHint(), goNext('right'))}
+          className="text-xs font-medium cursor-pointer active:opacity-60 select-none"
+          style={{ color: `${colors.card}99`, minHeight: 44, display: 'flex', alignItems: 'center' }}
         >
           Next →
-        </motion.button>
+        </span>
       </div>
 
       {/* Toast */}
