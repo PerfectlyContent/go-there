@@ -15,26 +15,57 @@ const item = {
   show: { opacity: 1, y: 0 },
 };
 
-// Gradient icon backgrounds per vibe
-const vibeIconGradients = {
-  deep: { from: '#C7D2FE', to: '#EEF2FF' },
-  funny: { from: '#FDE68A', to: '#FFFBEB' },
-  nostalgic: { from: '#FED7AA', to: '#FFF7ED' },
-  daring: { from: '#FECDD3', to: '#FFF1F2' },
-  flirty: { from: '#FBCFE8', to: '#FDF2F8' },
-  real: { from: '#A7F3D0', to: '#ECFDF5' },
-  mixed: { from: '#DDD6FE', to: '#F5F3FF' },
-};
-
-// Subtitles per vibe
-const vibeSubtitles = {
-  deep: 'Meaningful conversations',
-  funny: 'Laughs and good times',
-  nostalgic: 'Trip down memory lane',
-  daring: 'Bold and adventurous',
-  flirty: 'Playful and sweet',
-  real: 'Honest and raw',
-  mixed: 'A bit of everything',
+// Material icon, color, and aura config per vibe
+const vibeStyles = {
+  deep: {
+    icon: 'water_drop',
+    iconColor: '#3B82F6',
+    bgColor: '#EFF6FF',
+    aura: '0 0 20px rgba(37, 106, 244, 0.3)',
+    borderTint: 'rgba(191, 219, 254, 0.5)',
+  },
+  funny: {
+    icon: 'mood',
+    iconColor: '#EAB308',
+    bgColor: '#FEFCE8',
+    aura: '0 0 20px rgba(251, 191, 36, 0.3)',
+    borderTint: 'rgba(253, 230, 138, 0.5)',
+  },
+  nostalgic: {
+    icon: 'cable',
+    iconColor: '#A855F7',
+    bgColor: '#FAF5FF',
+    aura: '0 0 20px rgba(168, 85, 247, 0.3)',
+    borderTint: 'rgba(221, 214, 254, 0.5)',
+  },
+  daring: {
+    icon: 'local_fire_department',
+    iconColor: '#EF4444',
+    bgColor: '#FEF2F2',
+    aura: '0 0 20px rgba(239, 68, 68, 0.3)',
+    borderTint: 'rgba(254, 202, 202, 0.5)',
+  },
+  flirty: {
+    icon: 'favorite',
+    iconColor: '#EC4899',
+    bgColor: '#FDF2F8',
+    aura: '0 0 20px rgba(236, 72, 153, 0.3)',
+    borderTint: 'rgba(251, 207, 232, 0.5)',
+  },
+  real: {
+    icon: 'verified',
+    iconColor: '#22C55E',
+    bgColor: '#F0FDF4',
+    aura: '0 0 20px rgba(34, 197, 94, 0.3)',
+    borderTint: 'rgba(187, 247, 208, 0.5)',
+  },
+  mixed: {
+    icon: 'casino',
+    iconColor: '#8B5CF6',
+    bgColor: '#F5F3FF',
+    aura: '0 0 20px rgba(139, 92, 246, 0.3)',
+    borderTint: 'rgba(221, 214, 254, 0.5)',
+  },
 };
 
 function VibeScreen({ relationship, onSelect, onBack }) {
@@ -49,111 +80,84 @@ function VibeScreen({ relationship, onSelect, onBack }) {
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -50 }}
         transition={{ duration: 0.25, ease: 'easeInOut' }}
-        className="flex flex-col"
+        className="relative flex flex-col h-full max-w-md mx-auto px-6 py-8"
         style={{ minHeight: '100dvh' }}
       >
-        {/* Top Nav */}
-        <nav className="flex items-center justify-between px-6 pt-8 pb-4 sticky top-0 z-50">
+        {/* Header bar */}
+        <header className="flex items-center justify-between mb-8">
           <button
             onClick={onBack}
-            className="flex items-center justify-center size-10 rounded-full cursor-pointer active:scale-95 transition-transform"
-            style={{
-              background: 'rgba(255, 255, 255, 0.4)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255, 255, 255, 0.5)',
-              minHeight: 44,
-              minWidth: 44,
-            }}
+            className="flex size-10 items-center justify-center rounded-full bg-white/80 shadow-sm border border-slate-200 cursor-pointer active:scale-95 transition-transform"
+            style={{ minHeight: 44, minWidth: 44 }}
           >
-            <span className="material-symbols-outlined text-[22px] text-gray-900">arrow_back_ios_new</span>
+            <span className="material-symbols-outlined text-slate-600">arrow_back</span>
           </button>
-          <div
-            className="px-4 py-1.5 rounded-full"
-            style={{
-              background: 'rgba(255, 255, 255, 0.4)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255, 255, 255, 0.5)',
-            }}
-          >
-            <span className="text-xs font-semibold tracking-widest uppercase text-gray-500">Go There</span>
-          </div>
+          <h2 className="text-gray-900 text-lg font-semibold tracking-tight">
+            What's the vibe?
+          </h2>
           <div className="size-10" />
-        </nav>
-
-        {/* Header */}
-        <header className="px-6 pt-2 pb-6">
-          <motion.h1
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-[28px] font-bold leading-[1.15] tracking-tight text-gray-900 mb-1"
-          >
-            What's the <span style={{ color: '#256af4' }}>vibe?</span>
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.15 }}
-            className="text-gray-400 text-[15px] font-medium"
-          >
-            {relConfig ? `${relConfig.emoji} ${relConfig.label}` : ''} — choose a mood
-          </motion.p>
         </header>
 
-        {/* Selection List */}
-        <motion.main
+        {/* Title section */}
+        <motion.div
+          className="mb-10 text-center"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            {relConfig ? `${relConfig.emoji} ${relConfig.label}` : ''} — choose a mood
+          </h1>
+          <p className="mt-2 text-slate-500 text-sm">
+            Select one to personalize your questions
+          </p>
+        </motion.div>
+
+        {/* Grid of Vibe Cards */}
+        <motion.div
           variants={container}
           initial="hidden"
           animate="show"
-          className="px-6 pb-40 space-y-4"
+          className="grid grid-cols-2 gap-4 flex-1 mb-8"
         >
           {filteredVibes.map((vibe) => {
-            const gradient = vibeIconGradients[vibe.id] || { from: '#F3F4F6', to: '#F9FAFB' };
-            const colors = vibeColors[vibe.id];
-            const subtitle = vibeSubtitles[vibe.id] || '';
+            const style = vibeStyles[vibe.id] || vibeStyles.deep;
             return (
               <motion.button
                 key={vibe.id}
                 variants={item}
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.96 }}
                 onClick={() => onSelect(vibe.id)}
-                className="w-full rounded-2xl p-5 flex items-center justify-between transition-all duration-300 cursor-pointer text-left"
+                className="relative flex flex-col items-center justify-center gap-3 rounded-xl p-5 transition-all cursor-pointer hover:scale-[1.02]"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.4)',
+                  background: 'rgba(255, 255, 255, 0.7)',
                   backdropFilter: 'blur(12px)',
                   WebkitBackdropFilter: 'blur(12px)',
-                  border: '1px solid rgba(255, 255, 255, 0.5)',
-                  boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.04)',
+                  border: `1px solid ${style.borderTint}`,
                 }}
               >
-                <div className="flex items-center gap-5">
-                  <div
-                    className="size-16 rounded-xl flex items-center justify-center text-3xl"
+                <div
+                  className="flex size-16 items-center justify-center rounded-full"
+                  style={{
+                    backgroundColor: style.bgColor,
+                    filter: `drop-shadow(${style.aura})`,
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined text-4xl"
                     style={{
-                      background: `linear-gradient(to bottom right, ${gradient.from}, ${gradient.to})`,
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                      border: '1px solid white',
+                      color: style.iconColor,
+                      fontVariationSettings: "'FILL' 1",
                     }}
                   >
-                    {vibe.emoji}
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900">{vibe.label}</h3>
-                    {subtitle && <p className="text-gray-500 text-sm">{subtitle}</p>}
-                  </div>
+                    {style.icon}
+                  </span>
                 </div>
-                <div
-                  className="size-6 rounded-full"
-                  style={{
-                    border: '2px solid #E2E8F0',
-                  }}
-                />
+                <span className="font-semibold text-slate-700">{vibe.label}</span>
               </motion.button>
             );
           })}
-        </motion.main>
+        </motion.div>
       </motion.div>
     </Background>
   );
