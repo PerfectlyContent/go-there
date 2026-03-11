@@ -2,13 +2,11 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { motion, useMotionValue, useTransform, AnimatePresence, animate } from 'framer-motion';
 import questions from '../data/questions';
 import bonusQuestions from '../data/bonusQuestions';
-import ProgressRing from './ProgressRing';
 import Confetti from './Confetti';
 import {
   markQuestionSeen,
   saveQuestion,
   isQuestionSaved,
-  // getNextUnseenIndex — replaced by shuffled order logic
   incrementStreakIfQualified,
   saveState,
   vibes,
@@ -48,6 +46,13 @@ function seededShuffle(arr, seed) {
   return shuffled;
 }
 
+// Background images per vibe (abstract aesthetics)
+const vibeBgImages = {
+  deep: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBaPRuAsJCSuXzVIxhqcg0AKB5YlF9uoHRDpCyXok8BYWoPnLW7xMV-eELBzrdYJ1k_JbeFTfh50jRhyZU3vnIxARxOE3f34Rljw7NZfJ2UJuNqe2y43NziDsYcC12iHZI6lPGHona9D1ljnSKJd0iSsObpadShPDL0Q8DLhibYRH0ChxwNSs5iwZ4I7emfWtCXQ2yjty-xbgj_QaL4zsmh4kPg-CH2eOBD_UovZTfeOzFOltm_AAAzoMV25cKEGJ43w7oaxlZt7Us',
+  funny: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD5HAjrZEsqFz8kBaQ4JhJNu4XYFjF7MUTzILyY3Zy-iGDoahr_bVarkb34QSLWB4hl-WHpGyXDsh5pCxyadRkuhv02HNr1j0HGemlIEgQPq-GfWRKKMBDa5WpQ9Wn4CnmwOcq-kN-DLb_p4U2i43FfNlKicT88Y4UZgwB3riSsIYp7dyJb19nV-NYaZqvYtWOj0HLeAUsQbnEKm6Fj4I4zsodySvUsFPRgZyur__MuLVcMbQ-74vGN4pS8UTbPmWIBGfCjguhzq4Mv',
+  nostalgic: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBW-JBQIZHATV7jBV04NKRewUYLNKIyAu9fz2b6QyjkRA80N0nCwcWZdPb56x13DRXtZPpnjtaLV3_tt59JD4SM-9woiVpV7l4YQNLbOjkXdFZBLrv4RlS84iEUJF_obqX3uq8u7EIMIShtwNVzhfSHRNn5Xv682P0NOCQ_-MUEHBxRL5EXEppxIhgfI_pL-D10MhTmSZJw57RvJW-fgdfaQHlwi1k-MuqDJYtJW-hIzVDt8K-fXriHaEEpHC-LO-opN8kBTr_ICZVC',
+};
+
 function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeCheck }) {
   // Build question list — for mixed, combine all available vibes
   const mixedQuestionList = useMemo(() => {
@@ -71,8 +76,8 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
   const baseTotal = baseQuestionList.length;
 
   // "More like this" bonus question injection — pool-based
-  const [bonusQueue, setBonusQueue] = useState([]); // [{text, isBonus: true}]
-  const [usedPoolIndices, setUsedPoolIndices] = useState({}); // { [vibe]: Set<number> } — tracks consumed pool indices
+  const [bonusQueue, setBonusQueue] = useState([]);
+  const [usedPoolIndices, setUsedPoolIndices] = useState({});
 
   // Combined session list = originals + injected bonus questions
   const sessionQuestionList = useMemo(
@@ -81,31 +86,21 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
   );
   const totalQuestions = sessionQuestionList.length;
 
-  // Shuffle order per session — randomized index sequence.
-  // useState (not useMemo) so we can splice in bonus indices dynamically.
   const [shuffledOrder, setShuffledOrder] = useState(() => {
     const indices = Array.from({ length: baseTotal }, (_, i) => i);
     const seed = Date.now() + relationship.length * 1000 + (vibe || '').length;
     return seededShuffle(indices, seed);
   });
 
-  // Ref always holds latest shuffledOrder — critical for avoiding stale closures
-  // when handleSave injects bonus indices and goNext runs right after
   const shuffledOrderRef = useRef(shuffledOrder);
   shuffledOrderRef.current = shuffledOrder;
-
-  // Same for bonusQueue — handleSave needs the latest length for index calculation
   const bonusQueueRef = useRef(bonusQueue);
   bonusQueueRef.current = bonusQueue;
-
-  // Same for usedPoolIndices — avoid stale closure when picking from pool
   const usedPoolIndicesRef = useRef(usedPoolIndices);
   usedPoolIndicesRef.current = usedPoolIndices;
-
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  // Find the first unseen question in shuffled order
   const [currentIndex, setCurrentIndex] = useState(() => {
     const seen = state.seen[relationship]?.[vibe] || [];
     const firstUnseen = shuffledOrder.find(idx => !seen.includes(idx));
@@ -116,10 +111,10 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [showCompletion, setShowCompletion] = useState(false);
-  const [exitDirection, setExitDirection] = useState(null); // 'left' | 'right' | null
-  const [enterDirection, setEnterDirection] = useState(null); // 'left' | 'right' — where the new card enters from
-  const [cardKey, setCardKey] = useState(0); // Forces AnimatePresence re-render
-  const [textFlash, setTextFlash] = useState(false); // Flash question text on new card
+  const [exitDirection, setExitDirection] = useState(null);
+  const [enterDirection, setEnterDirection] = useState(null);
+  const [cardKey, setCardKey] = useState(0);
+  const [textFlash, setTextFlash] = useState(false);
   const [swipeCount, setSwipeCount] = useState(() => {
     try {
       return parseInt(localStorage.getItem('go-there-swipe-count') || '0', 10);
@@ -140,7 +135,6 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
   const relConfig = relationships.find((r) => r.id === relationship);
   const colors = vibeColors[currentSourceVibe] || vibeColors.deep;
 
-  // Progress based on base questions only (not inflated by bonus)
   const baseSeenCount = useMemo(() => {
     const seen = state.seen[relationship]?.[vibe] || [];
     return seen.filter(idx => idx < baseTotal).length;
@@ -148,27 +142,17 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
   const progress = (baseSeenCount / baseTotal) * 100;
   const rare = useMemo(() => isRareCard(relationship, vibe, currentIndex), [relationship, vibe, currentIndex]);
 
-  // Per-card visual variation — alternating tint + accent stripe
-  const cardHueRotate = useMemo(() => ((currentIndex * 23) % 40) - 20, [currentIndex]); // -20 to +20 degrees
-  const isEvenCard = currentIndex % 2 === 0;
-  // Alternate between white and a very light vibe tint
-  const cardBgColor = isEvenCard ? '#FFFFFF' : `${colors.card}08`;
-  // Accent stripe height varies per card
-  const accentHeight = [4, 6, 5, 3, 7][(currentIndex) % 5];
-
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
 
-  // Direction hint icons
   const rightHintOpacity = useTransform(x, [0, 60], [0, 1]);
   const leftHintOpacity = useTransform(x, [-60, 0], [1, 0]);
   const upHintOpacity = useTransform(y, [-60, 0], [1, 0]);
   const downHintOpacity = useTransform(y, [0, 60], [0, 1]);
 
-  // Micro-copy: rotate after 3+ swipes
   const microCopy = useMemo(() => {
-    if (swipeCount < 3) return null; // show nothing, the hint handles first-timers
+    if (swipeCount < 3) return null;
     return encouragingPrompts[swipeCount % encouragingPrompts.length];
   }, [swipeCount]);
 
@@ -182,7 +166,6 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
     setTimeout(() => setShowToast(false), 2000);
   }, []);
 
-  // Milestone celebrations
   const checkMilestone = useCallback((newSeenCount) => {
     const milestones = [10, 25, 50];
     const totalSeen = getTotalQuestionsViewed(stateRef.current);
@@ -201,7 +184,6 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
   }, []);
 
   const goNext = useCallback((direction = 'right') => {
-    // Mark current question as seen — pass baseTotal for correct completion check
     const currentState = stateRef.current;
     let newState = markQuestionSeen(currentState, relationship, vibe, currentIndex, baseTotal);
     newState = incrementStreakIfQualified(newState);
@@ -209,24 +191,19 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
     setState(newState);
     if (onBadgeCheck) onBadgeCheck(newState);
 
-    // Track swipe count
     const newSwipeCount = swipeCount + 1;
     setSwipeCount(newSwipeCount);
     try { localStorage.setItem('go-there-swipe-count', String(newSwipeCount)); } catch {}
 
-    // Session stats
     setSessionStats(prev => ({ ...prev, viewed: prev.viewed + 1 }));
 
-    // Use ref to always get the latest shuffledOrder (may have been updated by handleSave)
     const currentOrder = shuffledOrderRef.current;
 
-    // Check completion — only base questions count
     const allSeen = newState.seen[relationship]?.[vibe] || [];
     const newBaseSeenCount = allSeen.filter(idx => idx < baseTotal).length;
     checkMilestone(newBaseSeenCount);
 
     if (newBaseSeenCount >= baseTotal) {
-      // Check if there are still bonus questions to show
       const unseenBonus = currentOrder.filter(idx => idx >= baseTotal && !allSeen.includes(idx));
       if (unseenBonus.length === 0) {
         setShowCompletion(true);
@@ -234,7 +211,6 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
       }
     }
 
-    // Find next unseen question in shuffled order
     const seen = newState.seen[relationship]?.[vibe] || [];
     const currentShuffledPos = currentOrder.indexOf(currentIndex);
     const orderLen = currentOrder.length;
@@ -247,12 +223,10 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
       }
     }
 
-    // Haptic feedback on swipe
     if (navigator.vibrate) {
       navigator.vibrate(50);
     }
 
-    // Animate card flying off — new card enters from opposite side
     setExitDirection(direction);
     setEnterDirection(direction === 'right' ? 'left' : 'right');
     setTimeout(() => {
@@ -261,7 +235,6 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
       setCurrentIndex(nextIdx);
       setCardKey(k => k + 1);
       setExitDirection(null);
-      // Flash the question text to draw attention
       setTextFlash(true);
       setTimeout(() => setTextFlash(false), 400);
     }, 200);
@@ -269,13 +242,11 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
 
   const handleSave = useCallback(() => {
     if (!saved) {
-      // 1. Save the question (with isBonus flag)
       const newState = saveQuestion(stateRef.current, currentQuestion, relationship, vibe, isBonusCard);
       setState(newState);
       setSaved(true);
       setSessionStats(prev => ({ ...prev, saved: prev.saved + 1 }));
 
-      // 2. Heart animation: pulse + particles
       setHeartPulse(true);
       setTimeout(() => setHeartPulse(false), 600);
       const particles = Array.from({ length: 6 }, (_, i) => ({
@@ -285,12 +256,10 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
       setHeartParticles(particles);
       setTimeout(() => setHeartParticles([]), 800);
 
-      // 3. Haptic feedback
       if (navigator.vibrate) {
         navigator.vibrate(50);
       }
 
-      // 4. "More like this" — pick 1 random question from the vibe pool
       const effectiveVibe = (vibe === 'mixed' && mixedQuestionList?.[currentIndex])
         ? mixedQuestionList[currentIndex].sourceVibe
         : vibe;
@@ -300,35 +269,29 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
       const usedSet = currentUsed[effectiveVibe] || new Set();
 
       if (pool && pool.length > 0 && usedSet.size < pool.length) {
-        // Find available (unseen) pool indices
         const available = [];
         for (let i = 0; i < pool.length; i++) {
           if (!usedSet.has(i)) available.push(i);
         }
 
         if (available.length > 0) {
-          // Pick 1 random pool question
           const pick = available[Math.floor(Math.random() * available.length)];
           const bonusText = pool[pick];
 
-          // Mark this pool index as used (update state + ref)
           const newUsed = { ...currentUsed, [effectiveVibe]: new Set([...usedSet, pick]) };
           setUsedPoolIndices(newUsed);
           usedPoolIndicesRef.current = newUsed;
 
-          // Use refs for latest values to avoid stale closure issues
           const currentBonusQueue = bonusQueueRef.current;
           const currentOrder = shuffledOrderRef.current;
 
-          // Add to bonus queue
           const newBonusItem = { text: bonusText, isBonus: true };
           const newBonusQueue = [...currentBonusQueue, newBonusItem];
           setBonusQueue(newBonusQueue);
           bonusQueueRef.current = newBonusQueue;
 
-          // Splice new index into shuffledOrder right after current position
           const currentShuffledPos = currentOrder.indexOf(currentIndex);
-          const newIdx = baseTotal + currentBonusQueue.length; // position in sessionQuestionList
+          const newIdx = baseTotal + currentBonusQueue.length;
           const newOrder = [...currentOrder];
           newOrder.splice(currentShuffledPos + 1, 0, newIdx);
           setShuffledOrder(newOrder);
@@ -381,18 +344,15 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
       const swipeThresholdY = Math.min(window.innerHeight * 0.15, 80);
       const velocityThreshold = 300;
 
-      // Swipe right = next
       if (offset.x > swipeThresholdX || velocity.x > velocityThreshold) {
         dismissHint();
         goNext('right');
         return;
       }
 
-      // Swipe left = save + next (Tinder-style)
       if (offset.x < -swipeThresholdX || velocity.x < -velocityThreshold) {
         dismissHint();
         handleSave();
-        // After saving, animate left and go to next
         animate(x, -window.innerWidth, { duration: 0.25 });
         setTimeout(() => {
           goNext('left');
@@ -400,7 +360,6 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
         return;
       }
 
-      // Swipe up = share
       if (offset.y < -swipeThresholdY || velocity.y < -velocityThreshold) {
         handleShare();
         x.set(0);
@@ -408,9 +367,7 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
         return;
       }
 
-      // Swipe down = back
       if (offset.y > swipeThresholdY || velocity.y > velocityThreshold) {
-        // Show session summary if they've viewed questions
         if (sessionStats.viewed > 0) {
           setShowSessionSummary(true);
         } else {
@@ -419,7 +376,6 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
         return;
       }
 
-      // Snap back
       animate(x, 0, { type: 'spring', stiffness: 300, damping: 25 });
       animate(y, 0, { type: 'spring', stiffness: 300, damping: 25 });
     },
@@ -433,6 +389,9 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
       onBack();
     }
   }, [sessionStats, onBack]);
+
+  // Get background image for current vibe
+  const bgImage = vibeBgImages[currentSourceVibe] || vibeBgImages[vibe] || vibeBgImages.deep;
 
   const bgStyle = {
     deep: 'linear-gradient(160deg, #DDD6FE 0%, #C4B5FD 40%, #DDD6FE 70%, #EDE9FE 100%)',
@@ -477,7 +436,6 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
 
   const blobs = bgBlobs[currentSourceVibe] || bgBlobs[vibe] || [];
 
-  // Card enter/exit animation variants — enter from opposite side of swipe
   const cardVariants = {
     enterFromLeft: {
       x: -window.innerWidth * 0.5,
@@ -666,313 +624,261 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
         />
       ))}
 
-      {/* Top bar */}
-      <header className="flex items-center justify-between px-4 pt-3 pb-2 z-10 glass-morphism mx-3 mt-2 rounded-2xl" style={{ border: `1px solid ${colors.card}15` }}>
+      {/* Header */}
+      <header
+        className="flex items-center justify-between px-4 py-3 z-10 sticky top-0"
+        style={{
+          background: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          borderBottom: `1px solid ${colors.card}15`,
+        }}
+      >
         <button
           onClick={handleBackClick}
-          className="flex items-center justify-center size-10 text-gray-500 cursor-pointer rounded-full active:bg-black/5 transition-colors"
+          className="flex items-center justify-center size-10 text-gray-700 cursor-pointer rounded-full active:bg-black/5 transition-colors"
           style={{ minHeight: 44, minWidth: 44 }}
         >
-          <span className="material-symbols-outlined text-xl">arrow_back</span>
+          <span className="material-symbols-outlined">arrow_back</span>
         </button>
-        <div className="flex flex-col items-center gap-0.5 flex-1">
-          <div
-            className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
-            style={{
-              backgroundColor: `${colors.card}12`,
-              color: colors.text,
-            }}
+        <h2 className="text-gray-900 text-lg font-bold leading-tight tracking-tight flex-1 text-center">
+          Conversation
+        </h2>
+        <div className="flex w-10 items-center justify-end">
+          <button
+            onClick={handleSave}
+            className="flex cursor-pointer items-center justify-center rounded-full size-10 bg-transparent transition-colors"
+            style={{ color: saved ? '#EC4899' : colors.text, minHeight: 44, minWidth: 44 }}
           >
-            {relConfig?.label} · {vibeConfig?.label}
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <ProgressRing progress={progress} size={36} strokeWidth={3} color={colors.card} />
-          <span className="text-xs font-medium text-gray-500">
-            {baseSeenCount}/{baseTotal}
-          </span>
+            <span
+              className="material-symbols-outlined"
+              style={saved ? { fontVariationSettings: "'FILL' 1" } : {}}
+            >
+              favorite
+            </span>
+          </button>
         </div>
       </header>
 
-      {/* Progress bar */}
-      <div className="w-full px-6 mt-2 z-10">
-        <div className="w-full h-[3px] rounded-full overflow-hidden" style={{ backgroundColor: `${colors.card}20` }}>
-          <motion.div
-            className="h-full rounded-full"
-            style={{ backgroundColor: colors.card }}
-            initial={false}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
-          />
-        </div>
-      </div>
-
-      {/* First-time hint OR micro-copy */}
-      <AnimatePresence mode="wait">
-        {showHint && swipeCount < 3 && (
-          <motion.div
-            key="hint"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="text-center px-6 py-2 text-sm text-gray-600 font-medium"
-          >
-            Swipe right for next, left for more like this
-          </motion.div>
-        )}
-        {!showHint && microCopy && (
-          <motion.div
-            key={`micro-${swipeCount}`}
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="text-center px-6 py-2 text-sm text-gray-500 italic"
-          >
-            {microCopy}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Card stack area */}
-      <div className="flex-1 flex items-center justify-center px-5 py-0 relative card-perspective">
-        {/* Third card (deepest in stack) — peeks out bottom-left */}
-        <div
-          className="absolute stack-card"
-          style={{
-            '--card-accent': colors.card,
-            width: 'calc(100% - 40px)',
-            maxWidth: 412,
-            height: 260,
-            top: '50%',
-            left: '50%',
-            transform: 'translate(calc(-50% - 4px), calc(-50% + 18px)) rotate(-2deg)',
-            opacity: 0.5,
-            transition: 'all 0.3s ease',
-            zIndex: 1,
-          }}
-        />
-        {/* Second card — peeks out bottom-right */}
-        <div
-          className="absolute stack-card"
-          style={{
-            '--card-accent': colors.card,
-            width: 'calc(100% - 40px)',
-            maxWidth: 412,
-            height: 260,
-            top: '50%',
-            left: '50%',
-            transform: 'translate(calc(-50% + 3px), calc(-50% + 10px)) rotate(1.2deg)',
-            opacity: 0.7,
-            transition: 'all 0.3s ease',
-            zIndex: 2,
-          }}
-        />
-
-        {/* Swipe direction hints */}
-        <motion.div
-          style={{ opacity: rightHintOpacity }}
-          className="absolute right-6 top-1/2 -translate-y-1/2 z-20 pointer-events-none"
-        >
-          <div className="glass-morphism rounded-full px-3 py-1.5 text-sm font-semibold flex items-center gap-1"
-            style={{ color: colors.card, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-            Next <span className="material-symbols-outlined text-sm">arrow_forward</span>
-          </div>
-        </motion.div>
-        <motion.div
-          style={{ opacity: leftHintOpacity }}
-          className="absolute left-6 top-1/2 -translate-y-1/2 z-20 pointer-events-none"
-        >
-          <div className="glass-morphism rounded-full px-3 py-1.5 text-sm font-semibold flex items-center gap-1"
-            style={{ color: '#8B5CF6', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-            <span className="material-symbols-outlined text-sm">auto_awesome</span> More
-          </div>
-        </motion.div>
-        <motion.div
-          style={{ opacity: upHintOpacity }}
-          className="absolute left-1/2 top-8 -translate-x-1/2 z-20 pointer-events-none"
-        >
-          <div className="glass-morphism rounded-full px-3 py-1.5 text-sm font-semibold text-gray-600 flex items-center gap-1"
-            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-            <span className="material-symbols-outlined text-sm">share</span> Share
-          </div>
-        </motion.div>
-        <motion.div
-          style={{ opacity: downHintOpacity }}
-          className="absolute left-1/2 bottom-2 -translate-x-1/2 z-20 pointer-events-none"
-        >
-          <div className="glass-morphism rounded-full px-3 py-1.5 text-sm font-semibold text-gray-500 flex items-center gap-1"
-            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-            <span className="material-symbols-outlined text-sm">arrow_back</span> Back
-          </div>
-        </motion.div>
-
-        {/* Main card with AnimatePresence for enter/exit */}
-        <AnimatePresence mode="popLayout" custom={exitDirection}>
-          <motion.div
-            key={`card-${cardKey}`}
-            drag
-            dragElastic={0.7}
-            dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-            onDragEnd={handleDragEnd}
-            variants={cardVariants}
-            initial={enterDirection === 'right' ? 'enterFromRight' : 'enterFromLeft'}
-            animate="center"
-            exit={exitDirection === 'left' ? 'exitLeft' : 'exitRight'}
-            transition={{ type: 'spring', damping: 25, stiffness: 300, duration: 0.3 }}
-            className={`question-card w-full max-w-[412px] relative z-10 cursor-grab active:cursor-grabbing select-none no-context-menu ${rare ? 'rare-card' : ''} ${isBonusCard ? 'bonus-card' : ''}`}
+      {/* Main content area */}
+      <main className="flex-1 flex flex-col items-center justify-center p-6 gap-6">
+        {/* Card area */}
+        <div className="w-full max-w-md relative" style={{ aspectRatio: '4/5' }}>
+          {/* Glow behind card */}
+          <div
+            className="absolute inset-0 rounded-full pointer-events-none transition-opacity"
             style={{
-              '--card-accent': colors.card,
-              background: cardBgColor,
-              x,
-              y,
-              rotate,
-              padding: '40px 32px 40px 36px',
-              minHeight: 260,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              touchAction: 'none',
-              WebkitUserSelect: 'none',
-              userSelect: 'none',
+              background: `${colors.card}30`,
+              filter: 'blur(60px)',
+              opacity: 0.3,
             }}
+          />
+
+          {/* Swipe direction hints */}
+          <motion.div
+            style={{ opacity: rightHintOpacity }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 pointer-events-none"
           >
-            {/* Colored accent stripe at top — varies per card */}
-            <div
-              className="absolute top-0 left-0 right-0 rounded-t-[14px]"
-              style={{
-                height: accentHeight,
-                background: `linear-gradient(90deg, ${colors.card}, ${colors.card}BB)`,
-                filter: `hue-rotate(${cardHueRotate}deg)`,
-                zIndex: 3,
-              }}
-            />
-
-            {/* Rare card shimmer overlay */}
-            {rare && (
-              <div
-                className="absolute inset-0 rounded-[16px] pointer-events-none overflow-hidden"
-                style={{ zIndex: 1 }}
-              >
-                <div className="rare-shimmer" />
-              </div>
-            )}
-
-            {/* Vibe badge + question text in glass container */}
-            <div className="glass-morphism rounded-xl px-6 py-5 w-full relative" style={{ zIndex: 2, border: `1px solid ${colors.card}20` }}>
-              <span
-                className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-3"
-                style={{ backgroundColor: `${colors.card}15`, color: colors.text }}
-              >
-                {isBonusCard ? '✨ Bonus' : `${vibeConfig?.emoji || ''} ${vibeConfig?.label || ''}`}
-              </span>
-              <motion.p
-                className="font-bold leading-snug tracking-tight"
-                animate={textFlash ? { opacity: [0, 1], y: [12, 0] } : { opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, ease: 'easeOut' }}
-                style={{
-                  fontSize: currentQuestion?.length > 100 ? '18px' : currentQuestion?.length > 70 ? '21px' : '24px',
-                  color: '#1A1A1A',
-                  lineHeight: 1.4,
-                  letterSpacing: '-0.02em',
-                }}
-              >
-                {currentQuestion}
-              </motion.p>
+            <div className="glass-morphism rounded-full px-3 py-1.5 text-sm font-semibold flex items-center gap-1"
+              style={{ color: colors.card, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+              Next <span className="material-symbols-outlined text-sm">arrow_forward</span>
             </div>
+          </motion.div>
+          <motion.div
+            style={{ opacity: leftHintOpacity }}
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 pointer-events-none"
+          >
+            <div className="glass-morphism rounded-full px-3 py-1.5 text-sm font-semibold flex items-center gap-1"
+              style={{ color: '#8B5CF6', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+              <span className="material-symbols-outlined text-sm">auto_awesome</span> More
+            </div>
+          </motion.div>
+          <motion.div
+            style={{ opacity: upHintOpacity }}
+            className="absolute left-1/2 top-2 -translate-x-1/2 z-20 pointer-events-none"
+          >
+            <div className="glass-morphism rounded-full px-3 py-1.5 text-sm font-semibold text-gray-600 flex items-center gap-1"
+              style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+              <span className="material-symbols-outlined text-sm">share</span> Share
+            </div>
+          </motion.div>
+          <motion.div
+            style={{ opacity: downHintOpacity }}
+            className="absolute left-1/2 bottom-2 -translate-x-1/2 z-20 pointer-events-none"
+          >
+            <div className="glass-morphism rounded-full px-3 py-1.5 text-sm font-semibold text-gray-500 flex items-center gap-1"
+              style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+              <span className="material-symbols-outlined text-sm">arrow_back</span> Back
+            </div>
+          </motion.div>
 
-            {/* Save heart indicator with animation */}
-            <AnimatePresence>
-              {saved && (
+          <AnimatePresence mode="popLayout" custom={exitDirection}>
+            <motion.div
+              key={`card-${cardKey}`}
+              drag
+              dragElastic={0.7}
+              dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+              onDragEnd={handleDragEnd}
+              variants={cardVariants}
+              initial={enterDirection === 'right' ? 'enterFromRight' : 'enterFromLeft'}
+              animate="center"
+              exit={exitDirection === 'left' ? 'exitLeft' : 'exitRight'}
+              transition={{ type: 'spring', damping: 25, stiffness: 300, duration: 0.3 }}
+              className={`relative h-full w-full rounded-xl overflow-hidden shadow-2xl flex flex-col cursor-grab active:cursor-grabbing select-none no-context-menu ${rare ? 'rare-card' : ''} ${isBonusCard ? 'bonus-card' : ''}`}
+              style={{
+                x,
+                y,
+                rotate,
+                touchAction: 'none',
+                WebkitUserSelect: 'none',
+                userSelect: 'none',
+                backgroundImage: `url("${bgImage}")`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundColor: colors.card,
+              }}
+            >
+              {/* Gradient overlay from bottom */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: 'linear-gradient(to top, rgba(15, 23, 42, 0.6) 0%, transparent 50%)',
+                }}
+              />
+
+              {/* Rare card shimmer overlay */}
+              {rare && (
+                <div
+                  className="absolute inset-0 rounded-xl pointer-events-none overflow-hidden"
+                  style={{ zIndex: 1 }}
+                >
+                  <div className="rare-shimmer" />
+                </div>
+              )}
+
+              {/* Content at bottom of card */}
+              <div className="mt-auto p-6 relative z-10">
+                {/* Glass morphism question container */}
+                <div
+                  className="glass-morphism rounded-xl p-6 mb-4"
+                  style={{ borderColor: 'rgba(255,255,255,0.2)' }}
+                >
+                  {/* Vibe badge */}
+                  <span
+                    className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-4"
+                    style={{
+                      backgroundColor: `${colors.card}20`,
+                      color: colors.card,
+                    }}
+                  >
+                    {isBonusCard ? '✨ Bonus' : `${vibeConfig?.label || ''}`}
+                  </span>
+
+                  {/* Question text */}
+                  <motion.p
+                    className="text-gray-900 tracking-tight font-bold leading-snug"
+                    animate={textFlash ? { opacity: [0, 1], y: [12, 0] } : { opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                    style={{
+                      fontSize: currentQuestion?.length > 100 ? '18px' : currentQuestion?.length > 70 ? '20px' : '24px',
+                      lineHeight: 1.35,
+                    }}
+                  >
+                    {currentQuestion}
+                  </motion.p>
+                </div>
+
+                {/* Bottom row: hint text + progress */}
+                <div className="flex items-center justify-between">
+                  <p className="text-white text-sm font-medium opacity-90 italic">
+                    {showHint && swipeCount < 3
+                      ? 'Swipe to explore'
+                      : microCopy || 'Swipe when ready'}
+                  </p>
+                  <span
+                    className="text-white/70 text-xs font-semibold"
+                  >
+                    {isBonusCard ? '✨ bonus' : `${baseSeenCount + 1} / ${baseTotal}`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Save heart indicator with animation */}
+              <AnimatePresence>
+                {saved && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: heartPulse ? [1, 1.4, 1] : 1 }}
+                    exit={{ scale: 0 }}
+                    transition={heartPulse ? { duration: 0.4, ease: 'easeOut' } : { type: 'spring', damping: 15 }}
+                    className="absolute top-4 right-4 text-lg"
+                    style={{ zIndex: 3 }}
+                  >
+                    ❤️
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Heart particle burst */}
+              {heartParticles.map((particle) => (
                 <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: heartPulse ? [1, 1.4, 1] : 1 }}
-                  exit={{ scale: 0 }}
-                  transition={heartPulse ? { duration: 0.4, ease: 'easeOut' } : { type: 'spring', damping: 15 }}
-                  className="absolute top-4 right-4 text-lg"
+                  key={particle.id}
+                  initial={{ scale: 0, x: 0, y: 0, opacity: 1 }}
+                  animate={{
+                    scale: [0, 1, 0.5],
+                    x: Math.cos(particle.angle * Math.PI / 180) * 40,
+                    y: Math.sin(particle.angle * Math.PI / 180) * 40,
+                    opacity: [1, 1, 0],
+                  }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                  className="absolute top-4 right-4 text-xs pointer-events-none"
                   style={{ zIndex: 3 }}
                 >
                   ❤️
                 </motion.div>
-              )}
-            </AnimatePresence>
+              ))}
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
-            {/* Question number */}
-            <div
-              className="absolute bottom-3 left-0 right-0 text-center pointer-events-none"
-              style={{ zIndex: 2, fontSize: '11px', fontWeight: 600, color: isBonusCard ? '#8B5CF6' : colors.card, opacity: 0.5 }}
+        {/* Action buttons below card */}
+        <div className="w-full max-w-md flex flex-col gap-3">
+          <h4 className="text-gray-500 text-sm font-semibold leading-normal tracking-wide text-center uppercase">
+            Reflect and share your thoughts
+          </h4>
+          <div className="flex flex-col gap-3 w-full">
+            <button
+              onClick={() => { dismissHint(); goNext('right'); }}
+              className="flex items-center justify-center overflow-hidden rounded-xl h-14 px-5 text-white text-base font-bold shadow-md transition-all active:scale-95 cursor-pointer"
+              style={{
+                backgroundColor: colors.card,
+                boxShadow: `0 4px 12px ${colors.card}40`,
+                minHeight: 56,
+              }}
             >
-              {isBonusCard ? '✨ bonus' : `${baseSeenCount + 1} / ${baseTotal}`}
-            </div>
-
-            {/* Heart particle burst */}
-            {heartParticles.map((particle) => (
-              <motion.div
-                key={particle.id}
-                initial={{ scale: 0, x: 0, y: 0, opacity: 1 }}
-                animate={{
-                  scale: [0, 1, 0.5],
-                  x: Math.cos(particle.angle * Math.PI / 180) * 40,
-                  y: Math.sin(particle.angle * Math.PI / 180) * 40,
-                  opacity: [1, 1, 0],
-                }}
-                transition={{ duration: 0.6, ease: 'easeOut' }}
-                className="absolute top-4 right-4 text-xs pointer-events-none"
-                style={{ zIndex: 3 }}
-              >
-                ❤️
-              </motion.div>
-            ))}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* Bottom action buttons */}
-      <div className="flex items-center justify-center gap-3 pb-5 pt-2 px-6 z-10">
-        <button
-          onClick={handleSave}
-          onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-          className="flex items-center justify-center gap-1.5 cursor-pointer rounded-full h-10 px-4 text-sm font-semibold transition-all active:scale-95 select-none"
-          style={{
-            backgroundColor: saved ? '#EC489918' : `${colors.card}10`,
-            color: saved ? '#EC4899' : colors.text,
-            minHeight: 44,
-          }}
-        >
-          <span className="material-symbols-outlined text-base" style={saved ? { fontVariationSettings: "'FILL' 1" } : {}}>
-            {saved ? 'favorite' : 'auto_awesome'}
-          </span>
-          {saved ? 'Saved' : 'More'}
-        </button>
-        <button
-          onClick={handleShare}
-          onKeyDown={(e) => e.key === 'Enter' && handleShare()}
-          className="flex items-center justify-center gap-1.5 cursor-pointer rounded-full h-10 px-4 text-sm font-semibold transition-all active:scale-95 select-none"
-          style={{
-            backgroundColor: `${colors.card}10`,
-            color: colors.text,
-            minHeight: 44,
-          }}
-        >
-          <span className="material-symbols-outlined text-base">share</span>
-          Share
-        </button>
-        <button
-          onClick={() => { dismissHint(); goNext('right'); }}
-          onKeyDown={(e) => e.key === 'Enter' && (dismissHint(), goNext('right'))}
-          className="flex items-center justify-center gap-1.5 cursor-pointer rounded-full h-10 px-5 text-sm font-bold shadow-md transition-all active:scale-95 select-none"
-          style={{
-            backgroundColor: colors.card,
-            color: '#FFFFFF',
-            minHeight: 44,
-            boxShadow: `0 4px 12px ${colors.card}40`,
-          }}
-        >
-          Next
-          <span className="material-symbols-outlined text-base">arrow_forward</span>
-        </button>
-      </div>
+              <span>Next Question</span>
+            </button>
+            <button
+              onClick={handleShare}
+              className="flex items-center justify-center overflow-hidden rounded-xl h-14 px-5 bg-white text-gray-900 border border-gray-200 text-base font-bold transition-colors active:bg-gray-50 cursor-pointer"
+              style={{ minHeight: 56 }}
+            >
+              <span className="material-symbols-outlined mr-2">share</span>
+              <span>Share with Partner</span>
+            </button>
+            <button
+              onClick={handleSave}
+              className="flex items-center justify-center overflow-hidden rounded-xl h-12 px-5 bg-transparent text-base font-semibold transition-colors active:scale-95 cursor-pointer"
+              style={{
+                color: saved ? '#EC4899' : '#6B7280',
+                minHeight: 48,
+              }}
+            >
+              <span>{saved ? 'Saved ❤️' : 'More Like This'}</span>
+            </button>
+          </div>
+        </div>
+      </main>
 
       {/* Toast */}
       <AnimatePresence>
