@@ -15,15 +15,26 @@ const item = {
   show: { opacity: 1, y: 0 },
 };
 
-// Light backgrounds and borders per vibe
-const vibeTints = {
-  deep: { bg: '#EEF2FF', border: '#C7D2FE' },
-  funny: { bg: '#FFFBEB', border: '#FDE68A' },
-  nostalgic: { bg: '#FFF7ED', border: '#FED7AA' },
-  daring: { bg: '#FFF1F2', border: '#FECDD3' },
-  flirty: { bg: '#FDF2F8', border: '#FBCFE8' },
-  real: { bg: '#ECFDF5', border: '#A7F3D0' },
-  mixed: { bg: '#F5F3FF', border: '#DDD6FE' },
+// Gradient icon backgrounds per vibe
+const vibeIconGradients = {
+  deep: { from: '#C7D2FE', to: '#EEF2FF' },
+  funny: { from: '#FDE68A', to: '#FFFBEB' },
+  nostalgic: { from: '#FED7AA', to: '#FFF7ED' },
+  daring: { from: '#FECDD3', to: '#FFF1F2' },
+  flirty: { from: '#FBCFE8', to: '#FDF2F8' },
+  real: { from: '#A7F3D0', to: '#ECFDF5' },
+  mixed: { from: '#DDD6FE', to: '#F5F3FF' },
+};
+
+// Subtitles per vibe
+const vibeSubtitles = {
+  deep: 'Meaningful conversations',
+  funny: 'Laughs and good times',
+  nostalgic: 'Trip down memory lane',
+  daring: 'Bold and adventurous',
+  flirty: 'Playful and sweet',
+  real: 'Honest and raw',
+  mixed: 'A bit of everything',
 };
 
 function VibeScreen({ relationship, onSelect, onBack }) {
@@ -33,73 +44,119 @@ function VibeScreen({ relationship, onSelect, onBack }) {
 
   return (
     <Background preset="vibe">
-    <motion.div
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -50 }}
-      transition={{ duration: 0.25, ease: 'easeInOut' }}
-      className="flex flex-col px-5 py-6"
-      style={{ minHeight: '100dvh' }}
-    >
-      {/* Top bar */}
-      <div className="flex items-center mb-3">
-        <button
-          onClick={onBack}
-          className="text-gray-400 text-sm font-medium cursor-pointer flex items-center gap-1.5 p-2 -ml-2 rounded-xl active:bg-gray-100"
-          style={{ minHeight: 44, minWidth: 44 }}
-        >
-          <span>←</span> Back
-        </button>
-      </div>
-
-      <motion.h2
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="text-3xl font-bold text-gray-900 mb-2 text-center"
-      >
-        What's the vibe?
-      </motion.h2>
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.15 }}
-        className="text-sm text-gray-400 text-center mb-6"
-      >
-        {relConfig ? `${relConfig.emoji} ${relConfig.label}` : ''} — choose a mood
-      </motion.p>
-
       <motion.div
-        variants={container}
-        initial="hidden"
-        animate="show"
-        className="grid grid-cols-2 gap-3 max-w-md mx-auto w-full pb-6"
+        initial={{ opacity: 0, x: 50 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -50 }}
+        transition={{ duration: 0.25, ease: 'easeInOut' }}
+        className="flex flex-col"
+        style={{ minHeight: '100dvh' }}
       >
-        {filteredVibes.map((vibe) => {
-          const tint = vibeTints[vibe.id] || { bg: '#FFFFFF', border: '#E5E7EB' };
-          const colors = vibeColors[vibe.id];
-          return (
-            <motion.button
-              key={vibe.id}
-              variants={item}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => onSelect(vibe.id)}
-              className="flex flex-col items-center justify-center py-5 px-4 rounded-2xl cursor-pointer"
-              style={{
-                backgroundColor: tint.bg,
-                border: `2px solid ${tint.border}`,
-                minHeight: 110,
-              }}
-            >
-              <span className="text-5xl mb-2.5">{vibe.emoji}</span>
-              <span className="text-base font-semibold" style={{ color: colors?.card || '#374151' }}>
-                {vibe.label}
-              </span>
-            </motion.button>
-          );
-        })}
+        {/* Top Nav */}
+        <nav className="flex items-center justify-between px-6 pt-8 pb-4 sticky top-0 z-50">
+          <button
+            onClick={onBack}
+            className="flex items-center justify-center size-10 rounded-full cursor-pointer active:scale-95 transition-transform"
+            style={{
+              background: 'rgba(255, 255, 255, 0.4)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255, 255, 255, 0.5)',
+              minHeight: 44,
+              minWidth: 44,
+            }}
+          >
+            <span className="material-symbols-outlined text-[22px] text-gray-900">arrow_back_ios_new</span>
+          </button>
+          <div
+            className="px-4 py-1.5 rounded-full"
+            style={{
+              background: 'rgba(255, 255, 255, 0.4)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255, 255, 255, 0.5)',
+            }}
+          >
+            <span className="text-xs font-semibold tracking-widest uppercase text-gray-500">Go There</span>
+          </div>
+          <div className="size-10" />
+        </nav>
+
+        {/* Header */}
+        <header className="px-8 pt-6 pb-10">
+          <motion.h1
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="font-bold leading-[1.1] tracking-tight text-gray-900 mb-2"
+            style={{ fontSize: '40px' }}
+          >
+            What's the <br /><span style={{ color: '#256af4' }}>vibe?</span>
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.15 }}
+            className="text-gray-500 text-lg font-medium"
+            style={{ opacity: 0.8 }}
+          >
+            {relConfig ? `${relConfig.emoji} ${relConfig.label}` : ''} — choose a mood
+          </motion.p>
+        </header>
+
+        {/* Selection List */}
+        <motion.main
+          variants={container}
+          initial="hidden"
+          animate="show"
+          className="px-6 pb-40 space-y-4"
+        >
+          {filteredVibes.map((vibe) => {
+            const gradient = vibeIconGradients[vibe.id] || { from: '#F3F4F6', to: '#F9FAFB' };
+            const colors = vibeColors[vibe.id];
+            const subtitle = vibeSubtitles[vibe.id] || '';
+            return (
+              <motion.button
+                key={vibe.id}
+                variants={item}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => onSelect(vibe.id)}
+                className="w-full rounded-2xl p-5 flex items-center justify-between transition-all duration-300 cursor-pointer text-left"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.4)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255, 255, 255, 0.5)',
+                  boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.04)',
+                }}
+              >
+                <div className="flex items-center gap-5">
+                  <div
+                    className="size-16 rounded-xl flex items-center justify-center text-3xl"
+                    style={{
+                      background: `linear-gradient(to bottom right, ${gradient.from}, ${gradient.to})`,
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                      border: '1px solid white',
+                    }}
+                  >
+                    {vibe.emoji}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">{vibe.label}</h3>
+                    {subtitle && <p className="text-gray-500 text-sm">{subtitle}</p>}
+                  </div>
+                </div>
+                <div
+                  className="size-6 rounded-full"
+                  style={{
+                    border: '2px solid #E2E8F0',
+                  }}
+                />
+              </motion.button>
+            );
+          })}
+        </motion.main>
       </motion.div>
-    </motion.div>
     </Background>
   );
 }

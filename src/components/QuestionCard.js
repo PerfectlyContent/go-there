@@ -46,11 +46,15 @@ function seededShuffle(arr, seed) {
   return shuffled;
 }
 
-// Background images per vibe (abstract aesthetics)
-const vibeBgImages = {
-  deep: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBaPRuAsJCSuXzVIxhqcg0AKB5YlF9uoHRDpCyXok8BYWoPnLW7xMV-eELBzrdYJ1k_JbeFTfh50jRhyZU3vnIxARxOE3f34Rljw7NZfJ2UJuNqe2y43NziDsYcC12iHZI6lPGHona9D1ljnSKJd0iSsObpadShPDL0Q8DLhibYRH0ChxwNSs5iwZ4I7emfWtCXQ2yjty-xbgj_QaL4zsmh4kPg-CH2eOBD_UovZTfeOzFOltm_AAAzoMV25cKEGJ43w7oaxlZt7Us',
-  funny: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD5HAjrZEsqFz8kBaQ4JhJNu4XYFjF7MUTzILyY3Zy-iGDoahr_bVarkb34QSLWB4hl-WHpGyXDsh5pCxyadRkuhv02HNr1j0HGemlIEgQPq-GfWRKKMBDa5WpQ9Wn4CnmwOcq-kN-DLb_p4U2i43FfNlKicT88Y4UZgwB3riSsIYp7dyJb19nV-NYaZqvYtWOj0HLeAUsQbnEKm6Fj4I4zsodySvUsFPRgZyur__MuLVcMbQ-74vGN4pS8UTbPmWIBGfCjguhzq4Mv',
-  nostalgic: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBW-JBQIZHATV7jBV04NKRewUYLNKIyAu9fz2b6QyjkRA80N0nCwcWZdPb56x13DRXtZPpnjtaLV3_tt59JD4SM-9woiVpV7l4YQNLbOjkXdFZBLrv4RlS84iEUJF_obqX3uq8u7EIMIShtwNVzhfSHRNn5Xv682P0NOCQ_-MUEHBxRL5EXEppxIhgfI_pL-D10MhTmSZJw57RvJW-fgdfaQHlwi1k-MuqDJYtJW-hIzVDt8K-fXriHaEEpHC-LO-opN8kBTr_ICZVC',
+// Card gradient backgrounds per vibe
+const cardGradients = {
+  deep: 'linear-gradient(160deg, #7C3AED 0%, #6D28D9 40%, #8B5CF6 80%, #A78BFA 100%)',
+  funny: 'linear-gradient(160deg, #F59E0B 0%, #D97706 40%, #FBBF24 80%, #FCD34D 100%)',
+  nostalgic: 'linear-gradient(160deg, #EA580C 0%, #C2410C 40%, #F97316 80%, #FB923C 100%)',
+  daring: 'linear-gradient(160deg, #E11D48 0%, #BE123C 40%, #F43F5E 80%, #FB7185 100%)',
+  flirty: 'linear-gradient(160deg, #DB2777 0%, #BE185D 40%, #EC4899 80%, #F472B6 100%)',
+  real: 'linear-gradient(160deg, #059669 0%, #047857 40%, #10B981 80%, #34D399 100%)',
+  mixed: 'linear-gradient(160deg, #7C3AED 0%, #6D28D9 40%, #8B5CF6 80%, #A78BFA 100%)',
 };
 
 function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeCheck }) {
@@ -390,8 +394,8 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
     }
   }, [sessionStats, onBack]);
 
-  // Get background image for current vibe
-  const bgImage = vibeBgImages[currentSourceVibe] || vibeBgImages[vibe] || vibeBgImages.deep;
+  // Card gradient for current vibe
+  const cardGradient = cardGradients[currentSourceVibe] || cardGradients[vibe] || cardGradients.deep;
 
   const bgStyle = {
     deep: 'linear-gradient(160deg, #DDD6FE 0%, #C4B5FD 40%, #DDD6FE 70%, #EDE9FE 100%)',
@@ -732,10 +736,7 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
                 touchAction: 'none',
                 WebkitUserSelect: 'none',
                 userSelect: 'none',
-                backgroundImage: `url("${bgImage}")`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundColor: colors.card,
+                backgroundImage: cardGradient,
               }}
             >
               {/* Gradient overlay from bottom */}
