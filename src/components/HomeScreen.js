@@ -33,11 +33,11 @@ function HomeScreen({ state, onStart, onSaved, onJourney }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: 0.2 } }}
-      className="relative flex min-h-screen w-full flex-col bg-background-light overflow-x-hidden"
-      style={{ minHeight: '100dvh' }}
+      className="relative flex w-full flex-col bg-background-light overflow-hidden"
+      style={{ height: '100dvh', maxHeight: '100dvh' }}
     >
       {/* Top Navigation Bar */}
-      <header className="flex items-center bg-transparent p-6 justify-between">
+      <header className="flex items-center bg-transparent px-6 pt-5 pb-3 justify-between shrink-0">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -57,15 +57,16 @@ function HomeScreen({ state, onStart, onSaved, onJourney }) {
       </header>
 
       {/* Main Content Container */}
-      <main className="flex flex-col flex-1 items-center justify-center px-6 max-w-2xl mx-auto w-full">
+      <main className="flex flex-col flex-1 items-center justify-center px-6 max-w-2xl mx-auto w-full min-h-0 py-2">
         {/* Hero Image */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.15, duration: 0.6 }}
-          className="w-full mb-8"
+          className="w-full mb-5 flex-1 min-h-0"
+          style={{ maxHeight: '45vh' }}
         >
-          <div className="w-full bg-center bg-no-repeat bg-cover flex flex-col justify-end overflow-hidden rounded-3xl min-h-[400px] shadow-2xl shadow-primary/20 bg-gradient-to-tr from-primary/30 to-primary/10 border-4 border-white"
+          <div className="w-full h-full bg-center bg-no-repeat bg-cover flex flex-col justify-end overflow-hidden rounded-3xl shadow-2xl shadow-primary/20 bg-gradient-to-tr from-primary/30 to-primary/10 border-4 border-white"
             style={{
               backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCKDUXSMirBRuknO37tQZdLCO91pY5jmO18X-4QMYsCIlAG-wEkUP9gUITsQwGEz7zcmkgGlHMCeBhh4jwQiGlPE-UKln-9cxXAtx3Nyg9hxapHMfpT8exXp-xjNpxC2gEMIa6-yx2fX8400wvht5J4Phx0NPHSDyjGb9OKAf8-CGn8cPLD-BNtkDfk_pZifA0y1c1q8K6vCRGPCfNGrBWFwS2jcDex84LinCXjtUW6x-4a9pfE0QZANDX62KQTZWas5alACLiYv_I")',
             }}
@@ -77,12 +78,12 @@ function HomeScreen({ state, onStart, onSaved, onJourney }) {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.6 }}
-          className="text-center space-y-4 max-w-md"
+          className="text-center space-y-3 max-w-md shrink-0"
         >
-          <h1 className="text-slate-900 tracking-tight text-4xl md:text-5xl font-extrabold leading-[1.1]">
+          <h1 className="text-slate-900 tracking-tight text-3xl md:text-4xl font-extrabold leading-[1.1]">
             Skip the Small Talk
           </h1>
-          <p className="text-slate-600 text-lg font-medium leading-relaxed px-2">
+          <p className="text-slate-600 text-base font-medium leading-relaxed px-2">
             Ready to dive deep? Ask the questions that actually matter and spark meaningful connections.
           </p>
         </motion.div>
@@ -92,14 +93,14 @@ function HomeScreen({ state, onStart, onSaved, onJourney }) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="w-full mt-12 mb-8 flex flex-col items-center"
+          className="w-full mt-6 mb-4 flex flex-col items-center shrink-0"
         >
           <div className="relative w-full flex justify-center">
             <motion.button
               whileTap={{ scale: 0.95 }}
               whileHover={{ scale: 1.05 }}
               onClick={() => { dismissOnboarding(); onStart(); }}
-              className="group relative flex w-full max-w-sm cursor-pointer items-center justify-center overflow-hidden rounded-full h-16 px-8 bg-primary text-white text-lg font-bold shadow-xl shadow-primary/30 transition-all"
+              className="group relative flex w-full max-w-sm cursor-pointer items-center justify-center overflow-hidden rounded-full h-14 px-8 bg-primary text-white text-lg font-bold shadow-xl shadow-primary/30 transition-all"
             >
               <span className="relative z-10 flex items-center gap-2">
                 Let's Go
@@ -135,7 +136,7 @@ function HomeScreen({ state, onStart, onSaved, onJourney }) {
           </div>
 
           {/* Bottom Decorative Hint */}
-          <div className="mt-6 flex items-center gap-2 text-slate-400 text-sm font-semibold uppercase tracking-widest">
+          <div className="mt-4 flex items-center gap-2 text-slate-400 text-sm font-semibold uppercase tracking-widest">
             <span className="h-px w-8 bg-slate-300" />
             <span>Experience Meaning</span>
             <span className="h-px w-8 bg-slate-300" />
@@ -148,7 +149,7 @@ function HomeScreen({ state, onStart, onSaved, onJourney }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7 }}
-            className="flex gap-3 w-full max-w-xs mb-4"
+            className="flex gap-3 w-full max-w-xs mb-2 shrink-0"
           >
             {savedCount > 0 && (
               <motion.button
