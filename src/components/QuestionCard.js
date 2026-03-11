@@ -667,22 +667,24 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
       ))}
 
       {/* Top bar */}
-      <div className="flex items-center justify-between px-3 pt-3 pb-1 z-10">
+      <header className="flex items-center justify-between px-4 pt-3 pb-2 z-10 glass-morphism mx-3 mt-2 rounded-2xl" style={{ border: `1px solid ${colors.card}15` }}>
         <button
           onClick={handleBackClick}
-          className="p-2.5 text-gray-500 cursor-pointer text-sm rounded-xl active:bg-black/5"
+          className="flex items-center justify-center size-10 text-gray-500 cursor-pointer rounded-full active:bg-black/5 transition-colors"
           style={{ minHeight: 44, minWidth: 44 }}
         >
-          ← Back
+          <span className="material-symbols-outlined text-xl">arrow_back</span>
         </button>
-        <div
-          className="px-3 py-1.5 rounded-full text-xs font-medium"
-          style={{
-            backgroundColor: `${colors.card}15`,
-            color: colors.text,
-          }}
-        >
-          {relConfig?.label} · {vibeConfig?.label}
+        <div className="flex flex-col items-center gap-0.5 flex-1">
+          <div
+            className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
+            style={{
+              backgroundColor: `${colors.card}12`,
+              color: colors.text,
+            }}
+          >
+            {relConfig?.label} · {vibeConfig?.label}
+          </div>
         </div>
         <div className="flex items-center gap-1.5">
           <ProgressRing progress={progress} size={36} strokeWidth={3} color={colors.card} />
@@ -690,10 +692,10 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
             {baseSeenCount}/{baseTotal}
           </span>
         </div>
-      </div>
+      </header>
 
       {/* Progress bar */}
-      <div className="w-full px-4 z-10">
+      <div className="w-full px-6 mt-2 z-10">
         <div className="w-full h-[3px] rounded-full overflow-hidden" style={{ backgroundColor: `${colors.card}20` }}>
           <motion.div
             className="h-full rounded-full"
@@ -772,36 +774,36 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
           style={{ opacity: rightHintOpacity }}
           className="absolute right-6 top-1/2 -translate-y-1/2 z-20 pointer-events-none"
         >
-          <div className="bg-white/80 backdrop-blur-sm rounded-full px-3 py-1.5 text-sm font-medium"
+          <div className="glass-morphism rounded-full px-3 py-1.5 text-sm font-semibold flex items-center gap-1"
             style={{ color: colors.card, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-            Next →
+            Next <span className="material-symbols-outlined text-sm">arrow_forward</span>
           </div>
         </motion.div>
         <motion.div
           style={{ opacity: leftHintOpacity }}
           className="absolute left-6 top-1/2 -translate-y-1/2 z-20 pointer-events-none"
         >
-          <div className="bg-white/80 backdrop-blur-sm rounded-full px-3 py-1.5 text-sm font-medium"
+          <div className="glass-morphism rounded-full px-3 py-1.5 text-sm font-semibold flex items-center gap-1"
             style={{ color: '#8B5CF6', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-            ✨ More like this
+            <span className="material-symbols-outlined text-sm">auto_awesome</span> More
           </div>
         </motion.div>
         <motion.div
           style={{ opacity: upHintOpacity }}
           className="absolute left-1/2 top-8 -translate-x-1/2 z-20 pointer-events-none"
         >
-          <div className="bg-white/80 backdrop-blur-sm text-gray-600 rounded-full px-3 py-1.5 text-sm font-medium"
+          <div className="glass-morphism rounded-full px-3 py-1.5 text-sm font-semibold text-gray-600 flex items-center gap-1"
             style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-            📤 Share
+            <span className="material-symbols-outlined text-sm">share</span> Share
           </div>
         </motion.div>
         <motion.div
           style={{ opacity: downHintOpacity }}
           className="absolute left-1/2 bottom-2 -translate-x-1/2 z-20 pointer-events-none"
         >
-          <div className="bg-white/80 backdrop-blur-sm text-gray-500 rounded-full px-3 py-1.5 text-sm font-medium"
+          <div className="glass-morphism rounded-full px-3 py-1.5 text-sm font-semibold text-gray-500 flex items-center gap-1"
             style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-            ← Back
+            <span className="material-symbols-outlined text-sm">arrow_back</span> Back
           </div>
         </motion.div>
 
@@ -857,28 +859,28 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
               </div>
             )}
 
-            {/* Vibe icon — sparkle for bonus cards */}
-            <div
-              className="absolute top-4 left-4 pointer-events-none"
-              style={{ fontSize: '26px', zIndex: 2 }}
-            >
-              {isBonusCard ? '✨' : vibeConfig?.emoji}
+            {/* Vibe badge + question text in glass container */}
+            <div className="glass-morphism rounded-xl px-6 py-5 w-full relative" style={{ zIndex: 2, border: `1px solid ${colors.card}20` }}>
+              <span
+                className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-3"
+                style={{ backgroundColor: `${colors.card}15`, color: colors.text }}
+              >
+                {isBonusCard ? '✨ Bonus' : `${vibeConfig?.emoji || ''} ${vibeConfig?.label || ''}`}
+              </span>
+              <motion.p
+                className="font-bold leading-snug tracking-tight"
+                animate={textFlash ? { opacity: [0, 1], y: [12, 0] } : { opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+                style={{
+                  fontSize: currentQuestion?.length > 100 ? '18px' : currentQuestion?.length > 70 ? '21px' : '24px',
+                  color: '#1A1A1A',
+                  lineHeight: 1.4,
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                {currentQuestion}
+              </motion.p>
             </div>
-
-            <motion.p
-              className="text-center font-semibold leading-relaxed relative"
-              animate={textFlash ? { opacity: [0, 1], y: [12, 0] } : { opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
-              style={{
-                fontSize: currentQuestion?.length > 100 ? '18px' : currentQuestion?.length > 70 ? '20px' : '22px',
-                color: '#1A1A1A',
-                lineHeight: 1.6,
-                zIndex: 2,
-                letterSpacing: '-0.01em',
-              }}
-            >
-              {currentQuestion}
-            </motion.p>
 
             {/* Save heart indicator with animation */}
             <AnimatePresence>
@@ -926,38 +928,50 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
         </AnimatePresence>
       </div>
 
-      {/* Swipe hint labels — tappable for accessibility but styled as text hints */}
-      <div className="flex items-center justify-between pb-5 pt-2 px-6 z-10">
-        <span
-          role="button"
-          tabIndex={0}
+      {/* Bottom action buttons */}
+      <div className="flex items-center justify-center gap-3 pb-5 pt-2 px-6 z-10">
+        <button
           onClick={handleSave}
           onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-          className="text-xs font-medium cursor-pointer active:opacity-60 select-none"
-          style={{ color: saved ? '#EC4899' : `${colors.card}99`, minHeight: 44, display: 'flex', alignItems: 'center' }}
+          className="flex items-center justify-center gap-1.5 cursor-pointer rounded-full h-10 px-4 text-sm font-semibold transition-all active:scale-95 select-none"
+          style={{
+            backgroundColor: saved ? '#EC489918' : `${colors.card}10`,
+            color: saved ? '#EC4899' : colors.text,
+            minHeight: 44,
+          }}
         >
-          ← {saved ? '❤️ Saved' : 'More like this ✨'}
-        </span>
-        <span
-          role="button"
-          tabIndex={0}
+          <span className="material-symbols-outlined text-base" style={saved ? { fontVariationSettings: "'FILL' 1" } : {}}>
+            {saved ? 'favorite' : 'auto_awesome'}
+          </span>
+          {saved ? 'Saved' : 'More'}
+        </button>
+        <button
           onClick={handleShare}
           onKeyDown={(e) => e.key === 'Enter' && handleShare()}
-          className="text-xs font-medium cursor-pointer active:opacity-60 select-none"
-          style={{ color: `${colors.card}99`, minHeight: 44, display: 'flex', alignItems: 'center' }}
+          className="flex items-center justify-center gap-1.5 cursor-pointer rounded-full h-10 px-4 text-sm font-semibold transition-all active:scale-95 select-none"
+          style={{
+            backgroundColor: `${colors.card}10`,
+            color: colors.text,
+            minHeight: 44,
+          }}
         >
-          Share ↑
-        </span>
-        <span
-          role="button"
-          tabIndex={0}
+          <span className="material-symbols-outlined text-base">share</span>
+          Share
+        </button>
+        <button
           onClick={() => { dismissHint(); goNext('right'); }}
           onKeyDown={(e) => e.key === 'Enter' && (dismissHint(), goNext('right'))}
-          className="text-xs font-medium cursor-pointer active:opacity-60 select-none"
-          style={{ color: `${colors.card}99`, minHeight: 44, display: 'flex', alignItems: 'center' }}
+          className="flex items-center justify-center gap-1.5 cursor-pointer rounded-full h-10 px-5 text-sm font-bold shadow-md transition-all active:scale-95 select-none"
+          style={{
+            backgroundColor: colors.card,
+            color: '#FFFFFF',
+            minHeight: 44,
+            boxShadow: `0 4px 12px ${colors.card}40`,
+          }}
         >
-          Next →
-        </span>
+          Next
+          <span className="material-symbols-outlined text-base">arrow_forward</span>
+        </button>
       </div>
 
       {/* Toast */}
