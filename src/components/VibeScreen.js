@@ -83,22 +83,20 @@ function VibeScreen({ relationship, onSelect, onBack }) {
         </nav>
 
         {/* Header */}
-        <header className="px-8 pt-6 pb-10">
+        <header className="px-6 pt-2 pb-6">
           <motion.h1
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="font-bold leading-[1.1] tracking-tight text-gray-900 mb-2"
-            style={{ fontSize: '40px' }}
+            className="text-[28px] font-bold leading-[1.15] tracking-tight text-gray-900 mb-1"
           >
-            What's the <br /><span style={{ color: '#256af4' }}>vibe?</span>
+            What's the <span style={{ color: '#256af4' }}>vibe?</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.15 }}
-            className="text-gray-500 text-lg font-medium"
-            style={{ opacity: 0.8 }}
+            className="text-gray-400 text-[15px] font-medium"
           >
             {relConfig ? `${relConfig.emoji} ${relConfig.label}` : ''} — choose a mood
           </motion.p>
