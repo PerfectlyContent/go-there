@@ -646,7 +646,7 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <h2 className="text-gray-900 text-lg font-bold leading-tight tracking-tight flex-1 text-center">
-          Conversation
+          Go There
         </h2>
         <div className="flex w-10 items-center justify-end">
           <button
@@ -665,9 +665,9 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
       </header>
 
       {/* Main content area */}
-      <main className="flex-1 flex flex-col items-center justify-center p-6 gap-6">
+      <main className="flex-1 flex flex-col items-center p-6 pt-2 gap-4">
         {/* Card area */}
-        <div className="w-full max-w-md relative" style={{ aspectRatio: '4/5' }}>
+        <div className="w-full max-w-md relative" style={{ aspectRatio: '3/4' }}>
           {/* Glow behind card */}
           <div
             className="absolute inset-0 rounded-full pointer-events-none transition-opacity"
@@ -844,9 +844,6 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
 
         {/* Action buttons below card */}
         <div className="w-full max-w-md flex flex-col gap-3">
-          <h4 className="text-gray-500 text-sm font-semibold leading-normal tracking-wide text-center uppercase">
-            Reflect and share your thoughts
-          </h4>
           <div className="flex flex-col gap-3 w-full">
             <button
               onClick={() => { dismissHint(); goNext('right'); }}
