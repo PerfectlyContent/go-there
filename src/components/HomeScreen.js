@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getTotalQuestionsViewed } from '../utils/storage';
-import Background from './Background';
 
 function HomeScreen({ state, onStart, onSaved, onJourney }) {
   const totalViewed = getTotalQuestionsViewed(state);
   const savedCount = state.savedQuestions?.length || 0;
-  const streak = state.streak || 0;
 
   // First-time onboarding tooltip
   const [showOnboarding, setShowOnboarding] = useState(() => {
@@ -31,163 +29,154 @@ function HomeScreen({ state, onStart, onSaved, onJourney }) {
   };
 
   return (
-    <Background preset="home">
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: 0.2 } }}
-      className="flex flex-col items-center justify-center px-6 py-12"
+      className="relative flex min-h-screen w-full flex-col bg-background-light overflow-x-hidden"
       style={{ minHeight: '100dvh' }}
     >
-      {/* Brand */}
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.1, duration: 0.6 }}
-        className="text-center mb-8"
-      >
+      {/* Top Navigation Bar */}
+      <header className="flex items-center bg-transparent p-6 justify-between">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.15, type: 'spring', stiffness: 200 }}
-          className="mb-5"
+          transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
+          className="text-primary flex size-12 shrink-0 items-center justify-center bg-primary/10 rounded-xl"
         >
-          <span className="text-5xl">💬</span>
+          <span className="material-symbols-outlined text-3xl">auto_awesome</span>
         </motion.div>
-        <motion.h1
-          className="text-5xl font-bold mb-2 text-gray-900"
-          initial={{ scale: 0.9 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-        >
-          Go There
-        </motion.h1>
-        <motion.p
+        <motion.h2
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="text-base text-gray-400"
-          style={{ letterSpacing: '0.02em' }}
+          transition={{ delay: 0.2 }}
+          className="text-slate-900 text-xl font-extrabold leading-tight tracking-tight flex-1 text-center pr-12"
         >
-          questions that spark great conversations
-        </motion.p>
-      </motion.div>
+          Go There
+        </motion.h2>
+      </header>
 
-      {/* Stats card */}
-      {totalViewed > 0 && (
+      {/* Main Content Container */}
+      <main className="flex flex-col flex-1 items-center justify-center px-6 max-w-2xl mx-auto w-full">
+        {/* Hero Image */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.15, duration: 0.6 }}
+          className="w-full mb-8"
+        >
+          <div className="w-full bg-center bg-no-repeat bg-cover flex flex-col justify-end overflow-hidden rounded-3xl min-h-[400px] shadow-2xl shadow-primary/20 bg-gradient-to-tr from-primary/30 to-primary/10 border-4 border-white"
+            style={{
+              backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCKDUXSMirBRuknO37tQZdLCO91pY5jmO18X-4QMYsCIlAG-wEkUP9gUITsQwGEz7zcmkgGlHMCeBhh4jwQiGlPE-UKln-9cxXAtx3Nyg9hxapHMfpT8exXp-xjNpxC2gEMIa6-yx2fX8400wvht5J4Phx0NPHSDyjGb9OKAf8-CGn8cPLD-BNtkDfk_pZifA0y1c1q8K6vCRGPCfNGrBWFwS2jcDex84LinCXjtUW6x-4a9pfE0QZANDX62KQTZWas5alACLiYv_I")',
+            }}
+          />
+        </motion.div>
+
+        {/* Text Content */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.6 }}
+          className="text-center space-y-4 max-w-md"
+        >
+          <h1 className="text-slate-900 tracking-tight text-4xl md:text-5xl font-extrabold leading-[1.1]">
+            Skip the Small Talk
+          </h1>
+          <p className="text-slate-600 text-lg font-medium leading-relaxed px-2">
+            Ready to dive deep? Ask the questions that actually matter and spark meaningful connections.
+          </p>
+        </motion.div>
+
+        {/* Action Button */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45 }}
-          className="bg-white rounded-2xl px-6 py-4 mb-6 w-full max-w-xs"
-          style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}
+          transition={{ delay: 0.5 }}
+          className="w-full mt-12 mb-8 flex flex-col items-center"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-3xl font-bold text-gray-900">{totalViewed}</p>
-              <p className="text-xs text-gray-400 mt-0.5">questions explored</p>
-            </div>
-            <div className="flex gap-4">
-              {streak > 0 && (
-                <div className="text-center">
-                  <p className="text-lg font-bold text-gray-900 flex items-center gap-1">
-                    <span className="streak-flame text-base">🔥</span>{streak}
-                  </p>
-                  <p className="text-xs text-gray-400">streak</p>
-                </div>
-              )}
-              {savedCount > 0 && (
-                <div className="text-center">
-                  <p className="text-lg font-bold text-gray-900 flex items-center gap-1">
-                    <span className="text-base">❤️</span>{savedCount}
-                  </p>
-                  <p className="text-xs text-gray-400">saved</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </motion.div>
-      )}
+          <div className="relative w-full flex justify-center">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.05 }}
+              onClick={() => { dismissOnboarding(); onStart(); }}
+              className="group relative flex w-full max-w-sm cursor-pointer items-center justify-center overflow-hidden rounded-full h-16 px-8 bg-primary text-white text-lg font-bold shadow-xl shadow-primary/30 transition-all"
+            >
+              <span className="relative z-10 flex items-center gap-2">
+                Let's Go
+                <span className="material-symbols-outlined">arrow_forward</span>
+              </span>
+              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </motion.button>
 
-      {/* Main CTA */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.55 }}
-        className="w-full max-w-xs mb-4"
-      >
-        <div className="relative">
-          <motion.button
-            whileTap={{ scale: 0.96 }}
-            onClick={() => { dismissOnboarding(); onStart(); }}
-            className="w-full py-4.5 rounded-2xl text-lg font-semibold text-white cursor-pointer"
-            style={{
-              background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
-              boxShadow: '0 4px 20px rgba(99, 102, 241, 0.35)',
-              minHeight: 56,
-              padding: '18px 0',
-            }}
-          >
-            Let's Go
-          </motion.button>
-
-          {/* Onboarding tooltip */}
-          <AnimatePresence>
-            {showOnboarding && totalViewed === 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 5, scale: 0.95 }}
-                transition={{ delay: 0.8, duration: 0.3 }}
-                className="absolute -bottom-14 left-1/2 -translate-x-1/2 whitespace-nowrap"
-                onClick={dismissOnboarding}
-              >
-                <div
-                  className="px-4 py-2.5 bg-gray-800 text-white text-sm rounded-xl relative"
-                  style={{ boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}
+            {/* Onboarding tooltip */}
+            <AnimatePresence>
+              {showOnboarding && totalViewed === 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 5, scale: 0.95 }}
+                  transition={{ delay: 0.8, duration: 0.3 }}
+                  className="absolute -bottom-14 left-1/2 -translate-x-1/2 whitespace-nowrap"
+                  onClick={dismissOnboarding}
                 >
                   <div
-                    className="absolute -top-1.5 left-1/2 w-3 h-3 bg-gray-800"
-                    style={{ transform: 'translateX(-50%) rotate(45deg)' }}
-                  />
-                  Pick who you're with, then a vibe!
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </motion.div>
+                    className="px-4 py-2.5 bg-gray-800 text-white text-sm rounded-xl relative"
+                    style={{ boxShadow: '0 4px 15px rgba(0,0,0,0.2)' }}
+                  >
+                    <div
+                      className="absolute -top-1.5 left-1/2 w-3 h-3 bg-gray-800"
+                      style={{ transform: 'translateX(-50%) rotate(45deg)' }}
+                    />
+                    Pick who you're with, then a vibe!
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
-      {/* Secondary actions */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.7 }}
-        className="flex gap-3 w-full max-w-xs mt-2"
-      >
-        {savedCount > 0 && (
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={onSaved}
-            className="flex-1 px-4 py-3.5 rounded-2xl text-sm font-medium text-gray-600 bg-white cursor-pointer"
-            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)', minHeight: 48 }}
+          {/* Bottom Decorative Hint */}
+          <div className="mt-6 flex items-center gap-2 text-slate-400 text-sm font-semibold uppercase tracking-widest">
+            <span className="h-px w-8 bg-slate-300" />
+            <span>Experience Meaning</span>
+            <span className="h-px w-8 bg-slate-300" />
+          </div>
+        </motion.div>
+
+        {/* Secondary actions */}
+        {(savedCount > 0 || totalViewed > 0) && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7 }}
+            className="flex gap-3 w-full max-w-xs mb-4"
           >
-            ❤️ Saved
-          </motion.button>
+            {savedCount > 0 && (
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={onSaved}
+                className="flex-1 px-4 py-3.5 rounded-2xl text-sm font-medium text-slate-600 bg-white cursor-pointer"
+                style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)', minHeight: 48 }}
+              >
+                ❤️ Saved
+              </motion.button>
+            )}
+            {totalViewed > 0 && (
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={onJourney}
+                className="flex-1 px-4 py-3.5 rounded-2xl text-sm font-medium text-slate-600 bg-white cursor-pointer"
+                style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)', minHeight: 48 }}
+              >
+                🗺️ Journey
+              </motion.button>
+            )}
+          </motion.div>
         )}
-        {totalViewed > 0 && (
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={onJourney}
-            className="flex-1 px-4 py-3.5 rounded-2xl text-sm font-medium text-gray-600 bg-white cursor-pointer"
-            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.06)', minHeight: 48 }}
-          >
-            🗺️ Journey
-          </motion.button>
-        )}
-      </motion.div>
+      </main>
+
+      {/* Aesthetic Footer Gradient */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-primary/5 to-transparent pointer-events-none" />
     </motion.div>
-    </Background>
   );
 }
 
