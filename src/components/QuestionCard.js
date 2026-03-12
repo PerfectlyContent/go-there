@@ -608,7 +608,7 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
   return (
     <div
       className="flex flex-col relative"
-      style={{ background: bgStyle[currentSourceVibe] || bgStyle[vibe], minHeight: '100dvh', overflow: 'hidden' }}
+      style={{ background: bgStyle[currentSourceVibe] || bgStyle[vibe], height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}
     >
       {/* Background blobs */}
       {blobs.map((blob, i) => (
@@ -645,9 +645,14 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
         >
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
-        <h2 className="text-gray-900 text-lg font-bold leading-tight tracking-tight flex-1 text-center">
-          Go There
-        </h2>
+        <div className="flex-1 text-center">
+          <h2 className="text-gray-900 text-sm font-bold leading-tight tracking-tight">
+            {relConfig?.label || relationship}
+          </h2>
+          <p className="text-xs font-medium" style={{ color: colors.card }}>
+            {vibeConfig?.label || vibe}
+          </p>
+        </div>
         <div className="flex w-10 items-center justify-end">
           <button
             onClick={handleSave}
@@ -665,9 +670,9 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
       </header>
 
       {/* Main content area */}
-      <main className="flex-1 flex flex-col items-center p-6 pt-2 gap-4">
+      <main className="flex-1 flex flex-col items-center px-4 pt-2 pb-4 gap-3" style={{ minHeight: 0 }}>
         {/* Card area */}
-        <div className="w-full max-w-md relative" style={{ aspectRatio: '3/4' }}>
+        <div className="w-full max-w-md relative flex-1" style={{ perspective: '1200px', minHeight: 0 }}>
           {/* Glow behind card */}
           <div
             className="absolute inset-0 rounded-full pointer-events-none transition-opacity"
@@ -728,7 +733,7 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
               animate="center"
               exit={exitDirection === 'left' ? 'exitLeft' : 'exitRight'}
               transition={{ type: 'spring', damping: 25, stiffness: 300, duration: 0.3 }}
-              className={`relative h-full w-full rounded-xl overflow-hidden shadow-2xl flex flex-col cursor-grab active:cursor-grabbing select-none no-context-menu ${rare ? 'rare-card' : ''} ${isBonusCard ? 'bonus-card' : ''}`}
+              className={`relative h-full w-full rounded-2xl overflow-hidden flex flex-col cursor-grab active:cursor-grabbing select-none no-context-menu ${rare ? 'rare-card' : ''} ${isBonusCard ? 'bonus-card' : ''}`}
               style={{
                 x,
                 y,
@@ -737,6 +742,8 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
                 WebkitUserSelect: 'none',
                 userSelect: 'none',
                 backgroundImage: cardGradient,
+                boxShadow: '0 20px 60px -12px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1) inset',
+                transformStyle: 'preserve-3d',
               }}
             >
               {/* Gradient overlay from bottom */}
@@ -777,12 +784,15 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
 
                   {/* Question text */}
                   <motion.p
-                    className="text-gray-900 tracking-tight font-bold leading-snug"
+                    className="text-gray-900 tracking-tight leading-snug"
                     animate={textFlash ? { opacity: [0, 1], y: [12, 0] } : { opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, ease: 'easeOut' }}
                     style={{
-                      fontSize: currentQuestion?.length > 100 ? '18px' : currentQuestion?.length > 70 ? '20px' : '24px',
+                      fontFamily: "'Playfair Display', Georgia, serif",
+                      fontWeight: 600,
+                      fontSize: currentQuestion?.length > 100 ? '19px' : currentQuestion?.length > 70 ? '22px' : '26px',
                       lineHeight: 1.35,
+                      fontStyle: 'italic',
                     }}
                   >
                     {currentQuestion}
@@ -843,38 +853,24 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
         </div>
 
         {/* Action buttons below card */}
-        <div className="w-full max-w-md flex flex-col gap-3">
-          <div className="flex flex-col gap-3 w-full">
-            <button
-              onClick={() => { dismissHint(); goNext('right'); }}
-              className="flex items-center justify-center overflow-hidden rounded-xl h-14 px-5 text-white text-base font-bold shadow-md transition-all active:scale-95 cursor-pointer"
-              style={{
-                backgroundColor: colors.card,
-                boxShadow: `0 4px 12px ${colors.card}40`,
-                minHeight: 56,
-              }}
-            >
-              <span>Next Question</span>
-            </button>
-            <button
-              onClick={handleShare}
-              className="flex items-center justify-center overflow-hidden rounded-xl h-14 px-5 bg-white text-gray-900 border border-gray-200 text-base font-bold transition-colors active:bg-gray-50 cursor-pointer"
-              style={{ minHeight: 56 }}
-            >
-              <span className="material-symbols-outlined mr-2">share</span>
-              <span>Share with Partner</span>
-            </button>
-            <button
-              onClick={handleSave}
-              className="flex items-center justify-center overflow-hidden rounded-xl h-12 px-5 bg-transparent text-base font-semibold transition-colors active:scale-95 cursor-pointer"
-              style={{
-                color: saved ? '#EC4899' : '#6B7280',
-                minHeight: 48,
-              }}
-            >
-              <span>{saved ? 'Saved ❤️' : 'More Like This'}</span>
-            </button>
-          </div>
+        <div className="w-full max-w-md flex gap-3" style={{ flexShrink: 0 }}>
+          <button
+            onClick={() => { dismissHint(); goNext('right'); }}
+            className="flex-1 flex items-center justify-center overflow-hidden rounded-xl h-12 px-5 text-white text-sm font-bold shadow-md transition-all active:scale-95 cursor-pointer"
+            style={{
+              backgroundColor: colors.card,
+              boxShadow: `0 4px 12px ${colors.card}40`,
+            }}
+          >
+            Next Question
+          </button>
+          <button
+            onClick={handleShare}
+            className="flex items-center justify-center overflow-hidden rounded-xl h-12 px-5 bg-white text-gray-900 border border-gray-200 text-sm font-bold transition-colors active:bg-gray-50 cursor-pointer"
+          >
+            <span className="material-symbols-outlined mr-1.5 text-base">share</span>
+            Share
+          </button>
         </div>
       </main>
 
