@@ -765,26 +765,27 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
               )}
 
               {/* Content filling card */}
-              <div className="flex-1 flex flex-col p-3 relative z-10">
-                {/* Glass morphism question container - fills card */}
+              <div className="flex-1 flex flex-col p-4 pt-6 relative z-10">
+                {/* Glass morphism question container */}
                 <div
-                  className="glass-morphism rounded-xl p-6 flex-1 flex flex-col justify-end"
-                  style={{ borderColor: 'rgba(255,255,255,0.2)' }}
+                  className="glass-morphism rounded-xl p-6 flex-1 flex flex-col items-center justify-center"
+                  style={{ borderColor: 'rgba(255,255,255,0.2)', marginBottom: '40%' }}
                 >
-                  {/* Vibe badge */}
-                  <span
-                    className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-4"
-                    style={{
-                      backgroundColor: `${colors.card}20`,
-                      color: colors.card,
-                    }}
-                  >
-                    {isBonusCard ? '✨ Bonus' : `${vibeConfig?.label || ''}`}
-                  </span>
+                  {isBonusCard && (
+                    <span
+                      className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-4"
+                      style={{
+                        backgroundColor: `${colors.card}20`,
+                        color: colors.card,
+                      }}
+                    >
+                      ✨ Bonus
+                    </span>
+                  )}
 
                   {/* Question text */}
                   <motion.p
-                    className="text-gray-900 tracking-tight leading-snug"
+                    className="text-gray-900 tracking-tight leading-snug text-center"
                     animate={textFlash ? { opacity: [0, 1], y: [12, 0] } : { opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, ease: 'easeOut' }}
                     style={{
@@ -799,7 +800,7 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
                 </div>
 
                 {/* Bottom row: hint text + progress */}
-                <div className="flex items-center justify-between mt-3 px-1" style={{ flexShrink: 0 }}>
+                <div className="flex items-center justify-between mt-auto px-1" style={{ flexShrink: 0 }}>
                   <p className="text-gray-500 text-xs font-medium italic">
                     {showHint && swipeCount < 3
                       ? 'Swipe to explore'
