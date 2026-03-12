@@ -764,11 +764,11 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
                 </div>
               )}
 
-              {/* Content at bottom of card */}
-              <div className="mt-auto p-6 relative z-10">
-                {/* Glass morphism question container */}
+              {/* Content filling card */}
+              <div className="flex-1 flex flex-col p-3 relative z-10">
+                {/* Glass morphism question container - fills card */}
                 <div
-                  className="glass-morphism rounded-xl p-6 mb-4"
+                  className="glass-morphism rounded-xl p-6 flex-1 flex flex-col justify-end"
                   style={{ borderColor: 'rgba(255,255,255,0.2)' }}
                 >
                   {/* Vibe badge */}
@@ -788,11 +788,10 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
                     animate={textFlash ? { opacity: [0, 1], y: [12, 0] } : { opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, ease: 'easeOut' }}
                     style={{
-                      fontFamily: "'Playfair Display', Georgia, serif",
-                      fontWeight: 600,
-                      fontSize: currentQuestion?.length > 100 ? '19px' : currentQuestion?.length > 70 ? '22px' : '26px',
-                      lineHeight: 1.35,
-                      fontStyle: 'italic',
+                      fontFamily: "'DM Serif Display', Georgia, serif",
+                      fontWeight: 400,
+                      fontSize: currentQuestion?.length > 100 ? '20px' : currentQuestion?.length > 70 ? '23px' : '27px',
+                      lineHeight: 1.4,
                     }}
                   >
                     {currentQuestion}
@@ -800,14 +799,14 @@ function QuestionCard({ relationship, vibe, state, setState, onBack, onBadgeChec
                 </div>
 
                 {/* Bottom row: hint text + progress */}
-                <div className="flex items-center justify-between">
-                  <p className="text-white text-sm font-medium opacity-90 italic">
+                <div className="flex items-center justify-between mt-3 px-1" style={{ flexShrink: 0 }}>
+                  <p className="text-gray-500 text-xs font-medium italic">
                     {showHint && swipeCount < 3
                       ? 'Swipe to explore'
                       : microCopy || 'Swipe when ready'}
                   </p>
                   <span
-                    className="text-white/70 text-xs font-semibold"
+                    className="text-gray-400 text-xs font-semibold"
                   >
                     {isBonusCard ? '✨ bonus' : `${baseSeenCount + 1} / ${baseTotal}`}
                   </span>
