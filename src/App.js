@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import './App.css';
+import SignInScreen from './components/SignInScreen';
 import HomeScreen from './components/HomeScreen';
 import RelationshipScreen from './components/RelationshipScreen';
 import VibeScreen from './components/VibeScreen';
@@ -22,6 +23,9 @@ function App() {
     return checkAndUpdateStreak(loaded);
   });
 
+  const [authed, setAuthed] = useState(() => {
+    try { return sessionStorage.getItem('go-there-auth') === '1'; } catch { return false; }
+  });
   const [screen, setScreen] = useState('home');
   const [relationship, setRelationship] = useState(null);
   const [vibe, setVibe] = useState(null);
@@ -98,6 +102,14 @@ function App() {
     setVibe(v);
     setScreen('question');
   };
+
+  if (!authed) {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: '#FAF8F5' }}>
+        <SignInScreen onSignIn={() => setAuthed(true)} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#FAF8F5' }}>
